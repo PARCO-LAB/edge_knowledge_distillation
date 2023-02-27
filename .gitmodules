@@ -1,0 +1,3 @@
+[submodule "submodule/lib_maeve_py"]
+	path = submodule/lib_maeve_py
+	url = https://github.com/PARCO-LAB/lib_maeve_py.git
