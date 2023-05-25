@@ -109,7 +109,7 @@ if __name__ == '__main__':
     
     optimizer = OPTIMIZERS[config['optimizer']['name']](model.parameters(), **config['optimizer']['kwargs'])
     model, optimizer = amp.initialize(model, optimizer, opt_level="O1")
-    scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, 'min',patience=3)
+    scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, 'min', patience=3)
 
     if 'mask_unlabeled' in config and config['mask_unlabeled']:
         print('Masking unlabeled annotations')
@@ -133,8 +133,8 @@ if __name__ == '__main__':
         #     print('Adjusting learning rate to %f' % new_lr)
         #     set_lr(optimizer, new_lr)
         
-        #if epoch % config['checkpoints']['interval'] == 0:
-         #   save_checkpoint(model, checkpoint_dir, epoch)
+        if epoch % config['checkpoints']['interval'] == 0:
+           save_checkpoint(model, checkpoint_dir, epoch)
         
            
         
@@ -155,12 +155,12 @@ if __name__ == '__main__':
             
             optimizer.zero_grad()
             cmap_out, paf_out = model(image)
-            # print("out: ", cmap_out.shape, paf_out.shape, image.shape)
-            # print("gt: ", cmap.shape, paf.shape)
+            #print("out: ", cmap_out.shape, paf_out.shape, image.shape)
+            #print("gt: ", cmap.shape, paf.shape)
 
             cmap_mse = torch.mean(mask * (cmap_out - cmap)**2)
             paf_mse = torch.mean(mask * (paf_out - paf)**2)
-            
+          
             loss = cmap_mse + paf_mse
             
             with amp.scale_loss(loss, optimizer) as scaled_loss:

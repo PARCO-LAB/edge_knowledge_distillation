@@ -97,8 +97,8 @@ def coco_annotations_to_mask_bbox(coco_annotations, image_shape):
     return mask
             
 
-def convert_dir_to_bmp(output_dir, input_dir):
-    files = glob.glob(os.path.join(input_dir, '*.jpg'))
+def convert_dir_to_bmp(output_dir, input_dir, image_extension):
+    files = glob.glob(os.path.join(input_dir, '*.{}'.format(image_extension)))
     for f in files:
         new_path = os.path.join(
             output_dir,
@@ -217,7 +217,8 @@ class CocoDataset(torch.utils.data.Dataset):
                  random_scale=(1.0, 1.0),
                  random_translate=(0.0, 0.0),
                  transforms=None,
-                 keep_aspect_ratio=False):
+                 keep_aspect_ratio=False,
+                 image_extension="jpg"):
 
         self.keep_aspect_ratio = keep_aspect_ratio
         self.transforms=transforms
@@ -229,6 +230,7 @@ class CocoDataset(torch.utils.data.Dataset):
         self.random_angle = random_angle
         self.random_scale = random_scale
         self.random_translate = random_translate
+        self.image_extension = image_extension
         
         tensor_cache_file = annotations_file + '.cache'
         
@@ -333,7 +335,7 @@ class CocoDataset(torch.utils.data.Dataset):
         if self.is_bmp:
             filename = os.path.splitext(self.filenames[idx])[0] + '.bmp'
         else:
-            filename = os.path.splitext(self.filenames[idx])[0] + '.jpg'
+            filename = os.path.splitext(self.filenames[idx])[0] + '.{}'.format(self.image_extension)
 
         image = PIL.Image.open(os.path.join(self.images_dir, filename))
         
