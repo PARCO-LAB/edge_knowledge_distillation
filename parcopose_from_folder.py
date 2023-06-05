@@ -24,6 +24,12 @@ parser.add_argument("--folder",
                     dest="folder", 
                     required=True, 
                     help="Folder with images")
+parser.add_argument("--output-folder", 
+                    "-o", 
+                    dest="output_folder", 
+                    required=False,
+                    default=None, 
+                    help="Output folder with csv")
 parser.add_argument("--model-name", 
                     "-n", 
                     dest="name", 
@@ -52,6 +58,10 @@ H36M_2D_COLS = [
     v for k in H36M_HUMAN_PARTS_MAP for v in ["{}:U".format(k), "{}:V".format(k)]
 ]
 
+H36M_2D_COLS = [
+    v for k in H36M_HUMAN_PARTS_MAP for v in ["{}:U".format(k), "{}:V".format(k), "{}:ACC".format(k)]
+]
+
 
 def get_elapsed(start, end):
     hours, rem = divmod(end - start, 3600)
@@ -75,9 +85,11 @@ def skeletons_to_row(kp2d_dict):
     for part in H36M_HUMAN_PARTS_MAP:
         parcopose_part = H36M_HUMAN_PARTS_MAP[part]
         if parcopose_part in skeleton_with_more_kp: 
-            data.extend(skeleton_with_more_kp[parcopose_part][:2])
+            #data.extend(skeleton_with_more_kp[parcopose_part][:2])
+            data.extend(skeleton_with_more_kp[parcopose_part][:3])
         else:
-            data.extend([np.nan] * 2)
+            #data.extend([np.nan] * 2)
+            data.extend([np.nan] * 3)
         
     return pd.DataFrame(np.array([data]), columns=H36M_2D_COLS)
 
@@ -85,12 +97,16 @@ def skeletons_to_row(kp2d_dict):
 def init(model_name):
     print("Maeve initialization")
     start = time.time()
-    if model_name == "trtpose":
-        dnn = DNN(kind="densenet").load()
-    elif model_name == "parcoposeh36m":
-        dnn = DNN(kind="densenet", suffix="parcoh36m").load()
-    else:
+    if model_name == "parcopose":
         dnn = DNN(kind="densenet", suffix="parco").load()
+    elif model_name == "parcopose_h36m_vicon":
+        dnn = DNN(kind="densenet", suffix="parco_h36m_vicon").load()
+    elif model_name == "parcopose_h36m_openpose":
+        dnn = DNN(kind="densenet", suffix="parco_h36m_openpose").load()
+    elif model_name == "parcopose_h36m_CPN":
+        dnn = DNN(kind="densenet", suffix="parco_h36m_CPN").load()
+    else:
+        dnn = DNN(kind="densenet").load()
     end = time.time()
     print("initialization elapsed time: {}".format(get_elapsed(start, end)))
     return dnn
@@ -104,6 +120,7 @@ def loop(dnn : DNN, folderpath):
     df = pd.DataFrame(columns=["time", "frame"] + H36M_2D_COLS)
     while True:
         # Get frame
+        #filepath = os.path.join(folderpath, "frame_{}.jpg".format(i))
         filepath = os.path.join(folderpath, "{}.png".format(i))
         if not os.path.exists(filepath):
             break
@@ -132,7 +149,11 @@ def main():
     res = res[["time", "frame"] + H36M_2D_COLS]
     if args.folder[-1] == "/":
         args.folder = args.folder[:-1]
-    res.to_csv("{}.csv".format(args.folder), index=False)
+    if args.output_folder is None: 
+        res.to_csv("{}.csv".format(args.folder), index=False)
+    else: 
+        name = os.path.basename(args.folder)
+        res.to_csv(os.path.join(args.output_folder, "{}.csv".format(name)), index=False)
 
 
 if __name__ == "__main__":

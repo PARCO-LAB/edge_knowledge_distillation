@@ -164,3 +164,10 @@ apex
 *.mp4
 *.out
 .vscode
+*.jpg
+*.csv
+*.pdf
+*.png
+*.onnx
+*.tflite
+*.h5

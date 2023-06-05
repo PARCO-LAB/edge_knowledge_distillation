@@ -61,17 +61,29 @@ cp trt_pose/tasks/human_pose/experiments/h36m_nohead_densenet121_baseline_att_25
 
 ParcoPose: 
 ```
-nohup bash scripts/run_parcopose_h36m.bash &
+nohup bash scripts/run_parcopose_h36m_vicon.bash 1> log/run_parcopose_h36m_vicon.log 2> log/run_parcopose_h36m_vicon_err.log &
+nohup bash scripts/run_parcopose_h36m_openpose.bash 1> log/run_parcopose_h36m_openpose.log 2> log/run_parcopose_h36m_openpose_err.log &
+nohup bash scripts/run_parcopose_h36m_CPN.bash 1> log/run_parcopose_h36m_CPN.log 2> log/run_parcopose_h36m_CPN_err.log &
+nohup bash scripts/run_openpose.bash 1> log/run_openpose.log 2> log/run_openpose_err.log &
 nohup bash scripts/run_draw_parcopose_h36m.bash &
 
 python3 parcopose_from_folder.py -f <folder>
 python3 draw_parcopose_from_folder_jpg.py -f /home/shared/befine/lib_maeve_py/mirco_walking -n trtpose
+DNN=openpose python3 draw_parcopose_from_folder_jpg.py -f /home/shared/befine/lib_maeve_py/mirco_walking -n openpose
 python3 draw_parcopose_from_folder_jpg.py -f /home/shared/befine/lib_maeve_py/mirco_walking -n parcopose
-python3 draw_parcopose_from_folder_jpg.py -f /home/shared/befine/lib_maeve_py/mirco_walking -n parcoposeh36m
+python3 draw_parcopose_from_folder_jpg.py -f /home/shared/befine/lib_maeve_py/mirco_walking -n parcopose_h36m
+python3 draw_parcopose_from_folder_jpg.py -f /home/shared/befine/lib_maeve_py/mirco_walking -n parcopose_h36m_openpose
+python3 draw_parcopose_from_folder_jpg.py -f /home/shared/befine/lib_maeve_py/mirco_walking -n parcopose_h36m_CPN
 mv /home/shared/befine/lib_maeve_py/*.mp4 .
+python3 concat_video.py -n mirco_walking
 
 ffmpeg -y -framerate 15 -i /home/shared/befine/lib_maeve_py/mirco_walking_trtpose/frame_%d.jpg -tag:v hvc1 -c:v libx265 -pix_fmt yuv420p mirco_walking_trtpose.mp4
 ffmpeg -y -framerate 15 -i /home/shared/befine/lib_maeve_py/mirco_walking_parcopose/frame_%d.jpg -tag:v hvc1 -c:v libx265 -pix_fmt yuv420p mirco_walking_parcopose.mp4
 ffmpeg -y -framerate 15 -i /home/shared/befine/lib_maeve_py/mirco_walking_parcoposeh36m/frame_%d.jpg -tag:v hvc1 -c:v libx265 -pix_fmt yuv420p mirco_walking_parcoposeh36m.mp4
 ffmpeg -i mirco_walking_trtpose.mp4 -i mirco_walking_parcopose.mp4 -i mirco_walking_parcoposeh36m.mp4 -filter_complex "[0:v]crop=in_h:in_h:in_w/4:0[v0];[1:v]crop=in_h:in_h:in_w/4:0[v1];[2:v]crop=in_h:in_h:in_w/4:0[v2];[v0][v1][v2]hstack=inputs=3" mirco_walking_comparison.mp4
+```
+
+Validation: 
+```
+nohup python3 error.py -f /home/shared/nas/KnowledgeDistillation/h36m/ -r vicon -s openpose CPN trtpose trtpose_PARCO trtpose_retrained trtpose_retrained_op trtpose_retrained_CPN 1> log/validation.log 2> log/validation_err.log &
 ```

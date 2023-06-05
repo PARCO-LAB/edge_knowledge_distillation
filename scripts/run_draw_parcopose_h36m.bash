@@ -19,9 +19,13 @@ for cam in ${CAMERAS[*]}; do
         echo "CAMERA ${cam} - SUBJECT ${sub}"
         for action in $(ls -d /home/shared/nas/KnowledgeDistillation/h36m/${sub}/${cam}/*/); do
             echo ${action%/}
-            python3 draw_parcopose_from_folder.py -f ${action} -n trtpose
-            python3 draw_parcopose_from_folder.py -f ${action} -n parcopose
-            ffmpeg -i ${action%/}_trtpose.mp4 -i ${action%/}_parcopose.mp4 -filter_complex "[0:v]crop=in_h:in_h:in_w/4:0[v0];[1:v]crop=in_h:in_h:in_w/4:0[v1];[v0][v1]hstack=inputs=2" ${action}_comparison.mp4
+            python3 draw_parcopose_from_folder.py -f ${action%/} -n trtpose
+            DNN=openpose python3 draw_parcopose_from_folder.py -f ${action%/} -n openpose
+            python3 draw_parcopose_from_folder.py -f ${action%/} -n parcopose
+            python3 draw_parcopose_from_folder.py -f ${action%/} -n parcopose_h36m
+            python3 draw_parcopose_from_folder.py -f ${action%/} -n parcopose_h36m_openpose
+            python3 draw_parcopose_from_folder.py -f ${action%/} -n parcopose_h36m_CPN
+            python3 concat_video.py -n ${action%/}
         done
     done
 done

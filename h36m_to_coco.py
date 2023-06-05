@@ -96,8 +96,29 @@ def generate_on_subjects(subjects, h36m_folder, coco_annotation, output_file, te
                     take = ".".join(filename_replaced.split("/")[-1].split("_")[0].split(".")[0:-1])
                 except:
                     take = ".".join(filename_replaced.split("/")[-1].split("_")[0].split(".")[0:-1])
-                print(filename, take)
                 cam = take.split(".")[-1]
+                action = take.split(".")[0]
+
+                if "ALL" in action:
+                    continue # skip
+
+                images_folder = os.path.join(h36m_folder, sub, cam, take)
+                if not os.path.exists(images_folder):
+                    if action == "WalkDog":
+                        action = "WalkingDog"
+                    if action == "WalkDog1":
+                        action = "WalkingDog1"
+                    if action == "Photo":
+                        action = "TakingPhoto"
+                    if action == "Photo1":
+                        action = "TakingPhoto1"
+                    take = "{}.{}".format(action, cam)
+
+                print(filename, take)
+
+                images_folder = os.path.join(h36m_folder, sub, cam, take)
+                if not os.path.exists(images_folder):
+                    print("Warning: the path {} does not exist in the dataset folder".format(images_folder))
 
                 file = pd.read_csv(filename)
                 
@@ -128,15 +149,17 @@ def generate_on_subjects(subjects, h36m_folder, coco_annotation, output_file, te
 
 
 def main(h36m_folder, coco_annotation):
-    generate_on_subjects(["S1"], h36m_folder, coco_annotation, "person_keypoints_trainh36m_vicon.json", teacher="vicon")
-    generate_on_subjects(["S1"], h36m_folder, coco_annotation, "person_keypoints_trainh36m_openpose.json", teacher="openpose")
-    generate_on_subjects(["S9"], h36m_folder, coco_annotation, "person_keypoints_valh36m_vicon.json", teacher="vicon")
-    generate_on_subjects(["S9"], h36m_folder, coco_annotation, "person_keypoints_valh36m_openpose.json", teacher="openpose")
+    # generate_on_subjects(["S1"], h36m_folder, coco_annotation, "person_keypoints_trainh36m_vicon.json", teacher="vicon")
+    # generate_on_subjects(["S1"], h36m_folder, coco_annotation, "person_keypoints_trainh36m_openpose.json", teacher="openpose")
+    # generate_on_subjects(["S9"], h36m_folder, coco_annotation, "person_keypoints_valh36m_vicon.json", teacher="vicon")
+    # generate_on_subjects(["S9"], h36m_folder, coco_annotation, "person_keypoints_valh36m_openpose.json", teacher="openpose")
 
     # generate_on_subjects(["S1", "S5", "S6", "S7", "S8"], h36m_folder, coco_annotation, "person_keypoints_trainh36m_vicon.json", teacher="vicon")
     # generate_on_subjects(["S1", "S5", "S6", "S7", "S8"], h36m_folder, coco_annotation, "person_keypoints_trainh36m_openpose.json", teacher="openpose")
+    generate_on_subjects(["S1", "S5", "S6", "S7", "S8"], h36m_folder, coco_annotation, "person_keypoints_trainh36m_CPN.json", teacher="CPN")
     # generate_on_subjects(["S9", "S11"], h36m_folder, coco_annotation, "person_keypoints_valh36m_vicon.json", teacher="vicon")
     # generate_on_subjects(["S9", "S11"], h36m_folder, coco_annotation, "person_keypoints_valh36m_openpose.json", teacher="openpose")
+    generate_on_subjects(["S9", "S11"], h36m_folder, coco_annotation, "person_keypoints_valh36m_CPN.json", teacher="CPN")
 
 
 if __name__ == "__main__":
