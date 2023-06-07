@@ -118,6 +118,26 @@ def uniform_sampling(files, num_samples):
     return ret
 
 
+def action_sampling(files, num_samples):
+    ret = {}
+
+    def check_action(f):
+        for a in ["Sitting", "SittingDown", "Eating", "Purchases", "Greeting"]:
+            if a in f: 
+                return True
+        return False
+
+    files = [f for f in files if check_action(f)]
+    num_files = len(files)
+    frame_amount_per_file = int(num_samples / num_files)
+    
+    for fp in files: 
+        ret[fp] = list(range(0, IMAGE_ID_LIMIT, IMAGE_ID_LIMIT // frame_amount_per_file))
+        print("{}: key-frame amount {}{:20}".format(fp, len(ret[fp]), " "))
+
+    return ret
+
+
 def parco_keyframe_sampling(files, num_samples, num_eigen_vector=15, batch_size=30):
     ret = {}
     if batch_size is None: 
@@ -179,6 +199,8 @@ def get_keyframes(subjects, h36m_folder, sampling, perc, starting_model="trtpose
                 cam_sub_keyframes = uniform_sampling(files, num_samples)
             elif sampling == "random":
                 cam_sub_keyframes = random_sampling(files, num_samples)
+            elif sampling == "action":
+                cam_sub_keyframes = action_sampling(files, num_samples)
             else: 
                 print("Error: sampling {} not recognized".format(sampling))
                 exit()
@@ -302,7 +324,7 @@ def main(h36m_folder, coco_annotation):
     # generate_on_subjects(["S9", "S11"], h36m_folder, coco_annotation, "person_keypoints_valh36m_CPN.json", teacher="CPN")
 
     for teacher in ["vicon", "openpose", "CPN"]:
-        for sampling in ["uniform", "random", "parco"]:
+        for sampling in ["uniform", "random", "action", "parco"]:
             for perc in [0.1, 0.2, 0.4]:
                 generate_on_subjects(["S1", "S5", "S6", "S7", "S8"], h36m_folder, coco_annotation, 
                                      "person_keypoints_trainh36m_{}sampling{}_{}.json".format(sampling, int(perc * 100), teacher), 
