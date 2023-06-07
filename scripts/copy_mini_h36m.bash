@@ -61,4 +61,22 @@ for cam in ${CAMERAS[*]}; do
     done
 done
 
+# Copy CPN folder
+for cam in ${CAMERAS[*]}; do
+    for sub in ${SUBJECTS[*]}; do
+        echo "CAMERA ${cam} - SUBJECT ${sub}"
+        mkdir -p ${DST_DATASET}/${sub}/CPN
+        cp -r /home/shared/nas/KnowledgeDistillation/h36m/${sub}/CPN ${DST_DATASET}/${sub}
+    done
+done
+
+# Copy trtpose_PARCO folder
+for cam in ${CAMERAS[*]}; do
+    for sub in ${SUBJECTS[*]}; do
+        echo "CAMERA ${cam} - SUBJECT ${sub}"
+        mkdir -p ${DST_DATASET}/${sub}/trtpose_PARCO
+        cp -r /home/shared/nas/KnowledgeDistillation/h36m/${sub}/trtpose_PARCO ${DST_DATASET}/${sub}
+    done
+done
+
 echo "Done"

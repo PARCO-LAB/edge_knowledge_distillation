@@ -165,7 +165,7 @@ if __name__ == '__main__':
             
             with amp.scale_loss(loss, optimizer) as scaled_loss:
                 scaled_loss.backward()
-#             loss.backward()
+
             i += train_batch_size
             if i % int(config["batch_size"]) == 0: 
                 optimizer.step()

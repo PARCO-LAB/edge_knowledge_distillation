@@ -311,7 +311,7 @@ def plot(s1, s2_list):
 def plot_svd_h36m(folder, s1, s2_list, num_eigen_vector=30, batch_size=None, data_type="pos"):
     model_list = [s1] + s2_list
     train_subjects = ["S1", "S5", "S6", "S7", "S8"]
-    test_subjects = ["S9"]
+    test_subjects = ["S9", "S11"]
     subjects = {
         # "Train subjects": (train_subjects, "train"),
         "Test subjects": (test_subjects, "test")
@@ -355,7 +355,7 @@ def plot_svd_h36m(folder, s1, s2_list, num_eigen_vector=30, batch_size=None, dat
                     model_path = os.path.join(folder, sub, model)
                     model_pairs = find_pairs_h36m(s1_path, model_path, camera)
                     model_pairs = [f_pair for f_pair in model_pairs if "ALL" not in f_pair[0]]
-                    for model_f in model_pairs[1:2]:
+                    for model_f in model_pairs:
                         print(model_f[1], end="\n")
                         s1_df = pd.read_csv(model_f[0])[["time"] + h36m_kp_names]
                         model_df = pd.read_csv(model_f[1])[["time"] + h36m_kp_names]
@@ -448,7 +448,7 @@ def plot_svd_h36m(folder, s1, s2_list, num_eigen_vector=30, batch_size=None, dat
         print(" - {}".format(plot_name))
         sns.catplot(
             data=eigen_data_plot, x="first_good_eigen_vector", y="MPJPE", hue="model",
-            kind="violin", linewidth=0.4, height=10, aspect=1.2
+            kind="box", linewidth=0.4, height=10, aspect=1.2, showfliers = False
         )
         plt.xlabel(f"Minimum eigen-vector amount to obtain {threshold_perc_svd} %")
         plt.savefig(plot_name)
@@ -458,7 +458,7 @@ def plot_svd_h36m(folder, s1, s2_list, num_eigen_vector=30, batch_size=None, dat
         print(" - {}".format(plot_name))
         sns.catplot(
             data=eigen_data_plot, x="first_good_eigen_vector", y="mAP", hue="model",
-            kind="violin", linewidth=0.4, height=10, aspect=1.2
+            kind="box", linewidth=0.4, height=10, aspect=1.2, showfliers = False
         )
         plt.xlabel(f"Minimum eigen-vector amount to obtain {threshold_perc_svd} %")
         plt.savefig(plot_name)

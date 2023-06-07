@@ -17,27 +17,6 @@ from submodule import DNN
 
 FRAMERATE = 50
 
-
-parser = argparse.ArgumentParser(description="ParcoPose from folder", epilog="PARCO")
-parser.add_argument("--folder", 
-                    "-f", 
-                    dest="folder", 
-                    required=True, 
-                    help="Folder with images")
-parser.add_argument("--output-folder", 
-                    "-o", 
-                    dest="output_folder", 
-                    required=False,
-                    default=None, 
-                    help="Output folder with csv")
-parser.add_argument("--model-name", 
-                    "-n", 
-                    dest="name", 
-                    required=True, 
-                    help="Model name (parcopose or trtpose)")
-args = parser.parse_args()
-
-
 H36M_HUMAN_PARTS_MAP = {
     "Hip": "mid_hip",
     "RHip": "right_hip",
@@ -54,9 +33,9 @@ H36M_HUMAN_PARTS_MAP = {
     "RWrist": "right_wrist",
 }
 
-H36M_2D_COLS = [
-    v for k in H36M_HUMAN_PARTS_MAP for v in ["{}:U".format(k), "{}:V".format(k)]
-]
+# H36M_2D_COLS = [
+#     v for k in H36M_HUMAN_PARTS_MAP for v in ["{}:U".format(k), "{}:V".format(k)]
+# ]
 
 H36M_2D_COLS = [
     v for k in H36M_HUMAN_PARTS_MAP for v in ["{}:U".format(k), "{}:V".format(k), "{}:ACC".format(k)]
@@ -145,6 +124,24 @@ def loop(dnn : DNN, folderpath):
 
 
 def main():
+    parser = argparse.ArgumentParser(description="ParcoPose from folder", epilog="PARCO")
+    parser.add_argument("--folder", 
+                        "-f", 
+                        dest="folder", 
+                        required=True, 
+                        help="Folder with images")
+    parser.add_argument("--output-folder", 
+                        "-o", 
+                        dest="output_folder", 
+                        required=False,
+                        default=None, 
+                        help="Output folder with csv")
+    parser.add_argument("--model-name", 
+                        "-n", 
+                        dest="name", 
+                        required=True, 
+                        help="Model name (parcopose or trtpose)")
+    args = parser.parse_args()
     res = loop(init(args.name), args.folder)
     res = res[["time", "frame"] + H36M_2D_COLS]
     if args.folder[-1] == "/":
