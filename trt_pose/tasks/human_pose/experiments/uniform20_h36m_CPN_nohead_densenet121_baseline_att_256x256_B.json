@@ -1,7 +1,7 @@
 {
     "train_dataset": {
         "images_dir": "/home/accounts/personale/ldgsfn95/KnowledgeDistillation/KnowledgeDistillation/mini_h36m",
-        "annotations_file": "/home/accounts/personale/ldgsfn95/KnowledgeDistillation/KnowledgeDistillation/annotations/person_keypoints_trainh36m_randomsampling10_CPN.json",
+        "annotations_file": "/home/accounts/personale/ldgsfn95/KnowledgeDistillation/KnowledgeDistillation/annotations/person_keypoints_trainh36m_uniformsampling20_CPN.json",
         "category_name": "person",
         "image_shape": [256, 256],
         "target_shape": [64, 64],

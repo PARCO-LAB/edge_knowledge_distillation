@@ -1,13 +1,13 @@
 {
     "ground_truth": {
-        "folder": "/home/shared/nas/KnowledgeDistillation/h36m",
+        "folder": "/home/accounts/personale/ldgsfn95/KnowledgeDistillation/KnowledgeDistillation/h36m",
         "model": "vicon",
         "subjects": ["S9", "S11"],
         "cameras": ["55011271"]
     },
     "train_dataset": {
-        "images_dir": "/home/shared/nas/KnowledgeDistillation/mini_h36m",
-        "annotations_file": "/home/shared/nas/KnowledgeDistillation/annotations/person_keypoints_trainh36m_vicon.json",
+        "images_dir": "/home/accounts/personale/ldgsfn95/KnowledgeDistillation/KnowledgeDistillation/mini_h36m",
+        "annotations_file": "/home/accounts/personale/ldgsfn95/KnowledgeDistillation/KnowledgeDistillation/annotations/person_keypoints_trainh36m_vicon.json",
         "category_name": "person",
         "image_shape": [256, 256],
         "target_shape": [64, 64],
@@ -28,8 +28,8 @@
         "hue": 0.01
     },
     "test_dataset": {
-        "images_dir": "/home/shared/nas/KnowledgeDistillation/mini_h36m",
-        "annotations_file": "/home/shared/nas/KnowledgeDistillation/annotations/person_keypoints_valh36m_vicon.json",
+        "images_dir": "/home/accounts/personale/ldgsfn95/KnowledgeDistillation/KnowledgeDistillation/mini_h36m",
+        "annotations_file": "/home/accounts/personale/ldgsfn95/KnowledgeDistillation/KnowledgeDistillation/annotations/person_keypoints_valh36m_vicon.json",
         "category_name": "person",
         "image_shape": [256, 256],
         "target_shape": [64, 64],
@@ -54,7 +54,7 @@
     },
     "model": {
         "name": "densenet121_baseline_att",
-        "initial_state_dict": "/home/shared/befine/edge_knowledge_distillation/submodule/lib_maeve_py/maeve/nn/trtpose/models/densenet121_baseline_att_256x256_B_epoch_160_parco.pth",
+        "initial_state_dict": "/home/accounts/personale/ldgsfn95/git/edge_knowledge_distillation/submodule/lib_maeve_py/maeve/nn/trtpose/models/densenet121_baseline_att_256x256_B_epoch_160_parco.pth",
         "kwargs": {
             "cmap_channels": 12,
             "paf_channels": 24,
