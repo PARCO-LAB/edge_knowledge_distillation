@@ -43,6 +43,9 @@ From Human3.6M dataset to COCO format:
 python3 h36m_to_coco.py -hf /home/shared/nas/KnowledgeDistillation/h36m -cf /home/shared/nas/dataset/COCO/annotations/person_keypoints_val2017.json
 python3 h36m_to_coco.py -hf /home/shared/dataset/h36m -cf /home/shared/nas/dataset/COCO/annotations/person_keypoints_val2017.json
 python3 h36m_to_coco.py -hf /home/shared/nas/KnowledgeDistillation/mini_h36m -cf /home/shared/nas/dataset/COCO/annotations/person_keypoints_val2017.json
+
+# Jetson
+python3 h36m_to_coco.py -hf /home/nvidia/dataset/h36m -cf /home/nvidia/nas/dataset/COCO/annotations/person_keypoints_val2017.json
 ```
 
 Train:
@@ -55,8 +58,12 @@ nohup bash scripts/copy_mini_h36m.bash &
 
 nohup python3 trt_pose/train.py tasks/human_pose/experiments/nohead_densenet121_baseline_att_256x256_B.json &
 nohup python3 trt_pose/train.py tasks/human_pose/experiments/h36m_nohead_densenet121_baseline_att_256x256_B.json &
+nohup python3 trt_pose/train.py tasks/human_pose/experiments/uniform10_h36m_nohead_densenet121_baseline_att_256x256_B.json &
+nohup python3 trt_pose/train.py tasks/human_pose/experiments/random10_h36m_nohead_densenet121_baseline_att_256x256_B.json &
+nohup python3 trt_pose/train.py tasks/human_pose/experiments/action10_h36m_nohead_densenet121_baseline_att_256x256_B.json &
+nohup python3 trt_pose/train.py tasks/human_pose/experiments/parco10_h36m_nohead_densenet121_baseline_att_256x256_B.json &
 
-python3 trt_pose/continual_train.py tasks/human_pose/experiments/continual_h36m_nohead_densenet121_baseline_att_256x256_B.json
+nohup python3 trt_pose/continual_train.py tasks/human_pose/experiments/continual_h36m_nohead_densenet121_baseline_att_256x256_B.json &
 
 cp trt_pose/tasks/human_pose/experiments/h36m_nohead_densenet121_baseline_att_256x256_B.json.checkpoints/epoch_0.pth submodule/lib_maeve_py/maeve/nn/trtpose/models/
 ```
@@ -67,6 +74,12 @@ nohup bash scripts/run_parcopose_h36m_vicon.bash 1> log/run_parcopose_h36m_vicon
 nohup bash scripts/run_parcopose_h36m_openpose.bash 1> log/run_parcopose_h36m_openpose.log 2> log/run_parcopose_h36m_openpose_err.log &
 nohup bash scripts/run_parcopose_h36m_CPN.bash 1> log/run_parcopose_h36m_CPN.log 2> log/run_parcopose_h36m_CPN_err.log &
 nohup bash scripts/run_openpose.bash 1> log/run_openpose.log 2> log/run_openpose_err.log &
+
+nohup bash scripts/run_parcopose_h36m_uniformsampling.bash 1> log/run_parcopose_h36m_uniformsampling.log 2> log/run_parcopose_h36m_uniformsampling_err.log &
+nohup bash scripts/run_parcopose_h36m_randomsampling.bash 1> log/run_parcopose_h36m_randomsampling.log 2> log/run_parcopose_h36m_randomsampling_err.log &
+nohup bash scripts/run_parcopose_h36m_actionsampling.bash 1> log/run_parcopose_h36m_actionsampling.log 2> log/run_parcopose_h36m_actionsampling_err.log &
+nohup bash scripts/run_parcopose_h36m_parcosampling.bash 1> log/run_parcopose_h36m_parcosampling.log 2> log/run_parcopose_h36m_parcosampling_err.log &
+
 nohup bash scripts/run_draw_parcopose_h36m.bash &
 
 python3 parcopose_from_folder.py -f <folder>

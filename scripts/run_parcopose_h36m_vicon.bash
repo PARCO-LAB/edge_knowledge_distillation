@@ -21,7 +21,7 @@ parcopose() {
             mkdir -p /home/shared/nas/KnowledgeDistillation/h36m/${sub}/trtpose_PARCO/
             for action in $(ls -d /home/shared/nas/KnowledgeDistillation/h36m/${sub}/${cam}/*/); do
                 echo ${action}
-                python3 parcopose_from_folder.py -f ${action} -n parcopose -o /home/shared/nas/KnowledgeDistillation/h36m/${sub}/trtpose_PARCO/
+                python3 parcopose_from_folder.py -f ${action} -n parco -o /home/shared/nas/KnowledgeDistillation/h36m/${sub}/trtpose_PARCO/
             done
         done
     done
@@ -34,7 +34,7 @@ parcopose_h36m() {
             mkdir -p /home/shared/nas/KnowledgeDistillation/h36m/${sub}/trtpose_retrained/
             for action in $(ls -d /home/shared/nas/KnowledgeDistillation/h36m/${sub}/${cam}/*/); do
                 echo ${action}
-                python3 parcopose_from_folder.py -f ${action} -n parcopose_h36m_vicon -o /home/shared/nas/KnowledgeDistillation/h36m/${sub}/trtpose_retrained/
+                python3 parcopose_from_folder.py -f ${action} -n parco_h36m_vicon -o /home/shared/nas/KnowledgeDistillation/h36m/${sub}/trtpose_retrained/
             done
         done
     done

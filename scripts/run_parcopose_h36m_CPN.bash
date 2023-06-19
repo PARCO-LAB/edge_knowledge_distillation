@@ -21,7 +21,7 @@ parcopose_h36m_CPN() {
             mkdir -p /home/shared/nas/KnowledgeDistillation/h36m/${sub}/trtpose_retrained_CPN/
             for action in $(ls -d /home/shared/nas/KnowledgeDistillation/h36m/${sub}/${cam}/*/); do
                 echo ${action}
-                python3 parcopose_from_folder.py -f ${action} -n parcopose_h36m_CPN -o /home/shared/nas/KnowledgeDistillation/h36m/${sub}/trtpose_retrained_CPN/
+                python3 parcopose_from_folder.py -f ${action} -n parco_h36m_CPN -o /home/shared/nas/KnowledgeDistillation/h36m/${sub}/trtpose_retrained_CPN/
             done
         done
     done

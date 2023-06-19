@@ -38,14 +38,8 @@ def get_elapsed(start, end):
 def init(model_name):
     print("Maeve initialization")
     start = time.time()
-    if model_name == "parcopose":
-        dnn = DNN(kind="densenet", suffix="parco").load()
-    elif model_name == "parcopose_h36m_vicon":
-        dnn = DNN(kind="densenet", suffix="parco_h36m_vicon").load()
-    elif model_name == "parcopose_h36m_openpose":
-        dnn = DNN(kind="densenet", suffix="parco_h36m_openpose").load()
-    elif model_name == "parcopose_h36m_CPN":
-        dnn = DNN(kind="densenet", suffix="parco_h36m_CPN").load()
+    if "parco" in model_name:
+        dnn = DNN(kind="densenet", suffix=model_name).load()
     else:
         dnn = DNN(kind="densenet").load()
     end = time.time()

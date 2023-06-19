@@ -21,10 +21,10 @@ for cam in ${CAMERAS[*]}; do
             echo ${action%/}
             python3 draw_parcopose_from_folder.py -f ${action%/} -n trtpose
             DNN=openpose python3 draw_parcopose_from_folder.py -f ${action%/} -n openpose
-            python3 draw_parcopose_from_folder.py -f ${action%/} -n parcopose
-            python3 draw_parcopose_from_folder.py -f ${action%/} -n parcopose_h36m
-            python3 draw_parcopose_from_folder.py -f ${action%/} -n parcopose_h36m_openpose
-            python3 draw_parcopose_from_folder.py -f ${action%/} -n parcopose_h36m_CPN
+            python3 draw_parcopose_from_folder.py -f ${action%/} -n parco
+            python3 draw_parcopose_from_folder.py -f ${action%/} -n parco_h36m
+            python3 draw_parcopose_from_folder.py -f ${action%/} -n parco_h36m_openpose
+            python3 draw_parcopose_from_folder.py -f ${action%/} -n parco_h36m_CPN
             python3 concat_video.py -n ${action%/}
         done
     done
