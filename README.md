@@ -44,6 +44,8 @@ python3 h36m_to_coco.py -hf /home/shared/nas/KnowledgeDistillation/h36m -cf /hom
 python3 h36m_to_coco.py -hf /home/shared/dataset/h36m -cf /home/shared/nas/dataset/COCO/annotations/person_keypoints_val2017.json
 python3 h36m_to_coco.py -hf /home/shared/nas/KnowledgeDistillation/mini_h36m -cf /home/shared/nas/dataset/COCO/annotations/person_keypoints_val2017.json
 
+python3 gen_tasks.py -rf /home/shared/befine/edge_knowledge_distillation -df /home/shared/nas/KnowledgeDistillation
+
 # Jetson
 python3 h36m_to_coco.py -hf /home/nvidia/dataset/h36m -cf /home/nvidia/nas/dataset/COCO/annotations/person_keypoints_val2017.json
 ```
@@ -64,6 +66,7 @@ nohup python3 trt_pose/train.py tasks/human_pose/experiments/action10_h36m_nohea
 nohup python3 trt_pose/train.py tasks/human_pose/experiments/parco10_h36m_nohead_densenet121_baseline_att_256x256_B.json &
 
 nohup python3 trt_pose/continual_train.py tasks/human_pose/experiments/continual_h36m_nohead_densenet121_baseline_att_256x256_B.json &
+nohup bash continual.bash &
 
 cp trt_pose/tasks/human_pose/experiments/h36m_nohead_densenet121_baseline_att_256x256_B.json.checkpoints/epoch_0.pth submodule/lib_maeve_py/maeve/nn/trtpose/models/
 ```
@@ -100,5 +103,16 @@ ffmpeg -i mirco_walking_trtpose.mp4 -i mirco_walking_parcopose.mp4 -i mirco_walk
 
 Validation: 
 ```
-nohup python3 error.py -f /home/shared/nas/KnowledgeDistillation/h36m/ -r vicon -s openpose CPN trtpose trtpose_PARCO trtpose_retrained trtpose_retrained_op trtpose_retrained_CPN 1> log/validation.log 2> log/validation_err.log &
+nohup python3 error.py -f /home/shared/nas/KnowledgeDistillation/h36m/ -r vicon -s openpose1 CPN trtpose trtpose_PARCO trtpose_retrained trtpose_retrained_op trtpose_retrained_CPN 1> log/validation.log 2> log/validation_err.log &
+
+python3 error.py -f /home/shared/nas/KnowledgeDistillation/h36m/ -r vicon -s openpose1 CPN trtpose_PARCO trtpose_retrained trtpose_retrained_uniformsampling20 trtpose_retrained_randomsampling20 trtpose_retrained_actionsampling20 trtpose_retrained_parcosampling20 trtpose_retrained_mpjpesampling20
+
+python3 error.py -f /home/shared/nas/KnowledgeDistillation/h36m/ -r vicon -s openpose1 CPN trtpose_PARCO trtpose_retrained trtpose_retrained_uniformsampling10_op trtpose_retrained_randomsampling10_op trtpose_retrained_actionsampling10_op trtpose_retrained_parcosampling10_op
+
+python3 error.py -f /home/shared/nas/KnowledgeDistillation/h36m/ -r vicon -s openpose1 CPN trtpose_PARCO trtpose_retrained trtpose_retrained_uniformsampling10_CPN trtpose_retrained_randomsampling10_CPN trtpose_retrained_actionsampling10_CPN trtpose_retrained_parcosampling10_CPN
+
+python3.9 continual_analysis.py -c ./trt_pose/tasks/human_pose/experiments/continual_h36m_vicon_nohead_densenet121_baseline_att_256x256_B.json.checkpoints -b error_vicon_trtpose_PARCO_testh36m.csv error_vicon_trtpose_retrained_testh36m.csv
+
+python3.9 continual_analysis.py -c ./trt_pose/tasks/human_pose/experiments/continual_parco5_h36m_vicon_nohead_densenet121_baseline_att_256x256_B.json.checkpoints -b error_vicon_trtpose_PARCO_testh36m.csv error_vicon_trtpose_retrained_testh36m.csv
+
 ```

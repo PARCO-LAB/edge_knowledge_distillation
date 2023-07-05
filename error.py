@@ -178,7 +178,7 @@ def main_h36m(folder, s1, s2):
     train_subjects = ["S1", "S5", "S6", "S7", "S8"]
     test_subjects = ["S9", "S11"]
     subjects = {
-        "Train subjects": (train_subjects, "train"),
+        # "Train subjects": (train_subjects, "train"),
         "Test subjects": (test_subjects, "test")
     }
     cameras = ["55011271"]
@@ -190,6 +190,8 @@ def main_h36m(folder, s1, s2):
             print("Table between {} and {} on {} data already generated".format(s1, s2, subjects[t_sub][1]))
             results[t_sub] = pd.read_csv(table_fp, index_col=0)
             continue 
+
+        print("Table between {} and {} on {} data generating...".format(s1, s2, subjects[t_sub][1]))
         print("{}".format(t_sub))
         results_t_sub = {
             "camera": [],
@@ -278,9 +280,11 @@ def plot(s1, s2_list):
         
         plot_name = "error_barplot_{}_{}.{}".format(s1, t_sub, FORMAT)
         print(" - {}".format(plot_name))
-        fig, ax = plt.subplots(2, 1, figsize=(14, 14))
+        fig, ax = plt.subplots(2, 1, figsize=(14, 20))
         sns.barplot(data=data_plot, x="model", y="MPJPE", ax=ax[0])
+        ax[0].set_xticklabels(ax[0].get_xticklabels(), rotation=30, fontsize=7)
         sns.barplot(data=data_plot, x="model", y="mAP", ax=ax[1])
+        ax[1].set_xticklabels(ax[1].get_xticklabels(), rotation=30, fontsize=7)
         fig.savefig(plot_name)
         plt.close()
 
@@ -301,9 +305,35 @@ def plot(s1, s2_list):
 
         plot_name = "error_boxplot_{}_{}_kp.{}".format(s1, t_sub, FORMAT)
         print(" - {}".format(plot_name))
-        fig, ax = plt.subplots(2, 1, figsize=(14, 14))
+        fig, ax = plt.subplots(2, 1, figsize=(25, 14))
         sns.boxplot(data=data_plot, x="keypoint", hue="model", y="JPE", ax=ax[0])
+        ax[0].set_xticklabels(ax[0].get_xticklabels(), rotation=30, fontsize=7)
         sns.boxplot(data=data_plot, x="keypoint", hue="model", y="AP", ax=ax[1])
+        ax[1].set_xticklabels(ax[1].get_xticklabels(), rotation=30, fontsize=7)
+        fig.savefig(plot_name)
+        plt.close()
+
+        data_plot = {
+            "model": [], 
+            "action": [],
+            "MPJPE": [], 
+            "mAP": [], 
+        }
+        for s2 in s2_list: 
+            df = pd.read_csv("error_{}_{}_{}h36m.csv".format(s1, s2, t_sub), index_col=0)
+            data_plot["model"].extend([s2] * len(df.index))
+            data_plot["action"].extend(df["action"])
+            data_plot["MPJPE"].extend(df["MPJPE"])
+            data_plot["mAP"].extend(df["mAP"])
+        data_plot = pd.DataFrame(data_plot)
+
+        plot_name = "error_boxplot_{}_{}_action.{}".format(s1, t_sub, FORMAT)
+        print(" - {}".format(plot_name))
+        fig, ax = plt.subplots(2, 1, figsize=(50, 20))
+        sns.barplot(data=data_plot, x="action", hue="model", y="MPJPE", ax=ax[0])
+        ax[0].set_xticklabels(ax[0].get_xticklabels(), rotation=30, fontsize=7)
+        sns.barplot(data=data_plot, x="action", hue="model", y="mAP", ax=ax[1])
+        ax[1].set_xticklabels(ax[1].get_xticklabels(), rotation=30, fontsize=7)
         fig.savefig(plot_name)
         plt.close()
 
@@ -479,8 +509,8 @@ def main(folder, s1, s2_list, data_type):
             main_h36m(folder, s1, s2)
     
         print("Plot reconstruction")
-        plot_svd_h36m(folder, s1, s2_list, num_eigen_vector=15, batch_size=30, data_type="pos")
-        plot_svd_h36m(folder, s1, s2_list, num_eigen_vector=15, batch_size=30, data_type="vel")
+        # plot_svd_h36m(folder, s1, s2_list, num_eigen_vector=15, batch_size=30, data_type="pos")
+        # plot_svd_h36m(folder, s1, s2_list, num_eigen_vector=15, batch_size=30, data_type="vel")
 
     print("Plot general")
     plot(s1, s2_list)

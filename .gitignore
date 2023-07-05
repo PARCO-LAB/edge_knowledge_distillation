@@ -171,3 +171,4 @@ apex
 *.onnx
 *.tflite
 *.h5
+*h36m*.json

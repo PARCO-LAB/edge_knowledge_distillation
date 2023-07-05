@@ -337,6 +337,7 @@ class CocoDataset(torch.utils.data.Dataset):
         else:
             filename = os.path.splitext(self.filenames[idx])[0] + '.{}'.format(self.image_extension)
 
+        # print(filename)
         image = PIL.Image.open(os.path.join(self.images_dir, filename))
         
         im = self.samples[idx]['img']

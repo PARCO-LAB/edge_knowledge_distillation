@@ -14,138 +14,215 @@ CAMERAS=(
     "55011271"
 )
 
-parcopose_h36m_actionsampling10_vicon() {
+parco_h36m_actionsampling1_vicon() {
     for cam in ${CAMERAS[*]}; do
         for sub in ${SUBJECTS[*]}; do
             echo "CAMERA ${cam} - SUBJECT ${sub}"
-            mkdir -p /home/shared/nas/KnowledgeDistillation/h36m/${sub}/trtpose_retrained_actionsampling10/
+            mkdir -p /home/shared/nas/KnowledgeDistillation/h36m/${sub}/parco_h36m_actionsampling1_vicon/
             for action in $(ls -d /home/shared/nas/KnowledgeDistillation/h36m/${sub}/${cam}/*/); do
                 echo ${action}
-                python3 parcopose_from_folder.py -f ${action} -n parco_h36m_actionsampling10_vicon -o /home/shared/nas/KnowledgeDistillation/h36m/${sub}/trtpose_retrained_actionsampling10/
+                python3 parcopose_from_folder.py -f ${action} -n parco_h36m_actionsampling1_vicon -o /home/shared/nas/KnowledgeDistillation/h36m/${sub}/parco_h36m_actionsampling1_vicon/
             done
         done
     done
 }
 
-parcopose_h36m_actionsampling10_openpose() {
+parco_h36m_actionsampling5_vicon() {
     for cam in ${CAMERAS[*]}; do
         for sub in ${SUBJECTS[*]}; do
             echo "CAMERA ${cam} - SUBJECT ${sub}"
-            mkdir -p /home/shared/nas/KnowledgeDistillation/h36m/${sub}/trtpose_retrained_actionsampling10_op/
+            mkdir -p /home/shared/nas/KnowledgeDistillation/h36m/${sub}/parco_h36m_actionsampling5_vicon/
             for action in $(ls -d /home/shared/nas/KnowledgeDistillation/h36m/${sub}/${cam}/*/); do
                 echo ${action}
-                python3 parcopose_from_folder.py -f ${action} -n parco_h36m_actionsampling10_openpose -o /home/shared/nas/KnowledgeDistillation/h36m/${sub}/trtpose_retrained_actionsampling10_op/
+                python3 parcopose_from_folder.py -f ${action} -n parco_h36m_actionsampling5_vicon -o /home/shared/nas/KnowledgeDistillation/h36m/${sub}/parco_h36m_actionsampling5_vicon/
             done
         done
     done
 }
 
-parcopose_h36m_actionsampling10_CPN() {
+parco_h36m_actionsampling10_vicon() {
     for cam in ${CAMERAS[*]}; do
         for sub in ${SUBJECTS[*]}; do
             echo "CAMERA ${cam} - SUBJECT ${sub}"
-            mkdir -p /home/shared/nas/KnowledgeDistillation/h36m/${sub}/trtpose_retrained_actionsampling10_CPN/
+            mkdir -p /home/shared/nas/KnowledgeDistillation/h36m/${sub}/parco_h36m_actionsampling10_vicon/
             for action in $(ls -d /home/shared/nas/KnowledgeDistillation/h36m/${sub}/${cam}/*/); do
                 echo ${action}
-                python3 parcopose_from_folder.py -f ${action} -n parco_h36m_actionsampling10_CPN -o /home/shared/nas/KnowledgeDistillation/h36m/${sub}/trtpose_retrained_actionsampling10_CPN/
+                python3 parcopose_from_folder.py -f ${action} -n parco_h36m_actionsampling10_vicon -o /home/shared/nas/KnowledgeDistillation/h36m/${sub}/parco_h36m_actionsampling10_vicon/
             done
         done
     done
 }
 
-parcopose_h36m_actionsampling20_vicon() {
+parco_h36m_actionsampling20_vicon() {
     for cam in ${CAMERAS[*]}; do
         for sub in ${SUBJECTS[*]}; do
             echo "CAMERA ${cam} - SUBJECT ${sub}"
-            mkdir -p /home/shared/nas/KnowledgeDistillation/h36m/${sub}/trtpose_retrained_actionsampling20/
+            mkdir -p /home/shared/nas/KnowledgeDistillation/h36m/${sub}/parco_h36m_actionsampling20_vicon/
             for action in $(ls -d /home/shared/nas/KnowledgeDistillation/h36m/${sub}/${cam}/*/); do
                 echo ${action}
-                python3 parcopose_from_folder.py -f ${action} -n parco_h36m_actionsampling20_vicon -o /home/shared/nas/KnowledgeDistillation/h36m/${sub}/trtpose_retrained_actionsampling20/
+                python3 parcopose_from_folder.py -f ${action} -n parco_h36m_actionsampling20_vicon -o /home/shared/nas/KnowledgeDistillation/h36m/${sub}/parco_h36m_actionsampling20_vicon/
             done
         done
     done
 }
 
-parcopose_h36m_actionsampling20_openpose() {
+parco_h36m_actionsampling40_vicon() {
     for cam in ${CAMERAS[*]}; do
         for sub in ${SUBJECTS[*]}; do
             echo "CAMERA ${cam} - SUBJECT ${sub}"
-            mkdir -p /home/shared/nas/KnowledgeDistillation/h36m/${sub}/trtpose_retrained_actionsampling20_op/
+            mkdir -p /home/shared/nas/KnowledgeDistillation/h36m/${sub}/parco_h36m_actionsampling40_vicon/
             for action in $(ls -d /home/shared/nas/KnowledgeDistillation/h36m/${sub}/${cam}/*/); do
                 echo ${action}
-                python3 parcopose_from_folder.py -f ${action} -n parco_h36m_actionsampling20_openpose -o /home/shared/nas/KnowledgeDistillation/h36m/${sub}/trtpose_retrained_actionsampling20_op/
+                python3 parcopose_from_folder.py -f ${action} -n parco_h36m_actionsampling40_vicon -o /home/shared/nas/KnowledgeDistillation/h36m/${sub}/parco_h36m_actionsampling40_vicon/
             done
         done
     done
 }
 
-parcopose_h36m_actionsampling20_CPN() {
+parco_h36m_actionsampling1_openpose1() {
     for cam in ${CAMERAS[*]}; do
         for sub in ${SUBJECTS[*]}; do
             echo "CAMERA ${cam} - SUBJECT ${sub}"
-            mkdir -p /home/shared/nas/KnowledgeDistillation/h36m/${sub}/trtpose_retrained_actionsampling20_CPN/
+            mkdir -p /home/shared/nas/KnowledgeDistillation/h36m/${sub}/parco_h36m_actionsampling1_openpose1/
             for action in $(ls -d /home/shared/nas/KnowledgeDistillation/h36m/${sub}/${cam}/*/); do
                 echo ${action}
-                python3 parcopose_from_folder.py -f ${action} -n parco_h36m_actionsampling20_CPN -o /home/shared/nas/KnowledgeDistillation/h36m/${sub}/trtpose_retrained_actionsampling20_CPN/
+                python3 parcopose_from_folder.py -f ${action} -n parco_h36m_actionsampling1_openpose1 -o /home/shared/nas/KnowledgeDistillation/h36m/${sub}/parco_h36m_actionsampling1_openpose1/
             done
         done
     done
 }
 
-parcopose_h36m_actionsampling40_vicon() {
+parco_h36m_actionsampling5_openpose1() {
     for cam in ${CAMERAS[*]}; do
         for sub in ${SUBJECTS[*]}; do
             echo "CAMERA ${cam} - SUBJECT ${sub}"
-            mkdir -p /home/shared/nas/KnowledgeDistillation/h36m/${sub}/trtpose_retrained_actionsampling40/
+            mkdir -p /home/shared/nas/KnowledgeDistillation/h36m/${sub}/parco_h36m_actionsampling5_openpose1/
             for action in $(ls -d /home/shared/nas/KnowledgeDistillation/h36m/${sub}/${cam}/*/); do
                 echo ${action}
-                python3 parcopose_from_folder.py -f ${action} -n parco_h36m_actionsampling40_vicon -o /home/shared/nas/KnowledgeDistillation/h36m/${sub}/trtpose_retrained_actionsampling40/
+                python3 parcopose_from_folder.py -f ${action} -n parco_h36m_actionsampling5_openpose1 -o /home/shared/nas/KnowledgeDistillation/h36m/${sub}/parco_h36m_actionsampling5_openpose1/
             done
         done
     done
 }
 
-parcopose_h36m_actionsampling40_openpose() {
+parco_h36m_actionsampling10_openpose1() {
     for cam in ${CAMERAS[*]}; do
         for sub in ${SUBJECTS[*]}; do
             echo "CAMERA ${cam} - SUBJECT ${sub}"
-            mkdir -p /home/shared/nas/KnowledgeDistillation/h36m/${sub}/trtpose_retrained_actionsampling40_op/
+            mkdir -p /home/shared/nas/KnowledgeDistillation/h36m/${sub}/parco_h36m_actionsampling10_openpose1/
             for action in $(ls -d /home/shared/nas/KnowledgeDistillation/h36m/${sub}/${cam}/*/); do
                 echo ${action}
-                python3 parcopose_from_folder.py -f ${action} -n parco_h36m_actionsampling40_openpose -o /home/shared/nas/KnowledgeDistillation/h36m/${sub}/trtpose_retrained_actionsampling40_op/
+                python3 parcopose_from_folder.py -f ${action} -n parco_h36m_actionsampling10_openpose1 -o /home/shared/nas/KnowledgeDistillation/h36m/${sub}/parco_h36m_actionsampling10_openpose1/
             done
         done
     done
 }
 
-parcopose_h36m_actionsampling40_CPN() {
+parco_h36m_actionsampling20_openpose1() {
     for cam in ${CAMERAS[*]}; do
         for sub in ${SUBJECTS[*]}; do
             echo "CAMERA ${cam} - SUBJECT ${sub}"
-            mkdir -p /home/shared/nas/KnowledgeDistillation/h36m/${sub}/trtpose_retrained_actionsampling40_CPN/
+            mkdir -p /home/shared/nas/KnowledgeDistillation/h36m/${sub}/parco_h36m_actionsampling20_openpose1/
             for action in $(ls -d /home/shared/nas/KnowledgeDistillation/h36m/${sub}/${cam}/*/); do
                 echo ${action}
-                python3 parcopose_from_folder.py -f ${action} -n parco_h36m_actionsampling40_CPN -o /home/shared/nas/KnowledgeDistillation/h36m/${sub}/trtpose_retrained_actionsampling40_CPN/
+                python3 parcopose_from_folder.py -f ${action} -n parco_h36m_actionsampling20_openpose1 -o /home/shared/nas/KnowledgeDistillation/h36m/${sub}/parco_h36m_actionsampling20_openpose1/
             done
         done
     done
 }
 
+parco_h36m_actionsampling40_openpose1() {
+    for cam in ${CAMERAS[*]}; do
+        for sub in ${SUBJECTS[*]}; do
+            echo "CAMERA ${cam} - SUBJECT ${sub}"
+            mkdir -p /home/shared/nas/KnowledgeDistillation/h36m/${sub}/parco_h36m_actionsampling40_openpose1/
+            for action in $(ls -d /home/shared/nas/KnowledgeDistillation/h36m/${sub}/${cam}/*/); do
+                echo ${action}
+                python3 parcopose_from_folder.py -f ${action} -n parco_h36m_actionsampling40_openpose1 -o /home/shared/nas/KnowledgeDistillation/h36m/${sub}/parco_h36m_actionsampling40_openpose1/
+            done
+        done
+    done
+}
 
-# parcopose_h36m_actionsampling10_vicon
-parcopose_h36m_actionsampling10_CPN
-parcopose_h36m_actionsampling10_openpose
+parco_h36m_actionsampling1_CPN() {
+    for cam in ${CAMERAS[*]}; do
+        for sub in ${SUBJECTS[*]}; do
+            echo "CAMERA ${cam} - SUBJECT ${sub}"
+            mkdir -p /home/shared/nas/KnowledgeDistillation/h36m/${sub}/parco_h36m_actionsampling1_CPN/
+            for action in $(ls -d /home/shared/nas/KnowledgeDistillation/h36m/${sub}/${cam}/*/); do
+                echo ${action}
+                python3 parcopose_from_folder.py -f ${action} -n parco_h36m_actionsampling1_CPN -o /home/shared/nas/KnowledgeDistillation/h36m/${sub}/parco_h36m_actionsampling1_CPN/
+            done
+        done
+    done
+}
 
-# parcopose_h36m_actionsampling20_vicon
-# parcopose_h36m_actionsampling20_openpose
-# parcopose_h36m_actionsampling20_CPN
+parco_h36m_actionsampling5_CPN() {
+    for cam in ${CAMERAS[*]}; do
+        for sub in ${SUBJECTS[*]}; do
+            echo "CAMERA ${cam} - SUBJECT ${sub}"
+            mkdir -p /home/shared/nas/KnowledgeDistillation/h36m/${sub}/parco_h36m_actionsampling5_CPN/
+            for action in $(ls -d /home/shared/nas/KnowledgeDistillation/h36m/${sub}/${cam}/*/); do
+                echo ${action}
+                python3 parcopose_from_folder.py -f ${action} -n parco_h36m_actionsampling5_CPN -o /home/shared/nas/KnowledgeDistillation/h36m/${sub}/parco_h36m_actionsampling5_CPN/
+            done
+        done
+    done
+}
 
-# parcopose_h36m_actionsampling40_vicon
-# parcopose_h36m_actionsampling40_openpose
-# parcopose_h36m_actionsampling40_CPN
+parco_h36m_actionsampling10_CPN() {
+    for cam in ${CAMERAS[*]}; do
+        for sub in ${SUBJECTS[*]}; do
+            echo "CAMERA ${cam} - SUBJECT ${sub}"
+            mkdir -p /home/shared/nas/KnowledgeDistillation/h36m/${sub}/parco_h36m_actionsampling10_CPN/
+            for action in $(ls -d /home/shared/nas/KnowledgeDistillation/h36m/${sub}/${cam}/*/); do
+                echo ${action}
+                python3 parcopose_from_folder.py -f ${action} -n parco_h36m_actionsampling10_CPN -o /home/shared/nas/KnowledgeDistillation/h36m/${sub}/parco_h36m_actionsampling10_CPN/
+            done
+        done
+    done
+}
 
-# Train
-# cd /home/shared/befine/edge_knowledge_distillation/trt_pose
-# python3 trt_pose/train.py tasks/human_pose/experiments/h36m_nohead_densenet121_baseline_att_256x256_B.json
+parco_h36m_actionsampling20_CPN() {
+    for cam in ${CAMERAS[*]}; do
+        for sub in ${SUBJECTS[*]}; do
+            echo "CAMERA ${cam} - SUBJECT ${sub}"
+            mkdir -p /home/shared/nas/KnowledgeDistillation/h36m/${sub}/parco_h36m_actionsampling20_CPN/
+            for action in $(ls -d /home/shared/nas/KnowledgeDistillation/h36m/${sub}/${cam}/*/); do
+                echo ${action}
+                python3 parcopose_from_folder.py -f ${action} -n parco_h36m_actionsampling20_CPN -o /home/shared/nas/KnowledgeDistillation/h36m/${sub}/parco_h36m_actionsampling20_CPN/
+            done
+        done
+    done
+}
+
+parco_h36m_actionsampling40_CPN() {
+    for cam in ${CAMERAS[*]}; do
+        for sub in ${SUBJECTS[*]}; do
+            echo "CAMERA ${cam} - SUBJECT ${sub}"
+            mkdir -p /home/shared/nas/KnowledgeDistillation/h36m/${sub}/parco_h36m_actionsampling40_CPN/
+            for action in $(ls -d /home/shared/nas/KnowledgeDistillation/h36m/${sub}/${cam}/*/); do
+                echo ${action}
+                python3 parcopose_from_folder.py -f ${action} -n parco_h36m_actionsampling40_CPN -o /home/shared/nas/KnowledgeDistillation/h36m/${sub}/parco_h36m_actionsampling40_CPN/
+            done
+        done
+    done
+}
+
+parco_h36m_actionsampling1_vicon
+parco_h36m_actionsampling5_vicon
+parco_h36m_actionsampling10_vicon
+parco_h36m_actionsampling20_vicon
+parco_h36m_actionsampling40_vicon
+parco_h36m_actionsampling1_openpose1
+parco_h36m_actionsampling5_openpose1
+parco_h36m_actionsampling10_openpose1
+parco_h36m_actionsampling20_openpose1
+parco_h36m_actionsampling40_openpose1
+parco_h36m_actionsampling1_CPN
+parco_h36m_actionsampling5_CPN
+parco_h36m_actionsampling10_CPN
+parco_h36m_actionsampling20_CPN
+parco_h36m_actionsampling40_CPN
 
 echo "Done"

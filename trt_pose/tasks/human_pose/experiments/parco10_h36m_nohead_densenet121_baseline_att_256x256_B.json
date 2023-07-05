@@ -1,7 +1,7 @@
 {
     "train_dataset": {
         "images_dir": "/home/shared/nas/KnowledgeDistillation/mini_h36m",
-        "annotations_file": "/home/shared/nas/KnowledgeDistillation/annotations/person_keypoints_trainh36m_parcosampling10_vicon.json",
+        "annotations_file": "/home/shared/nas/KnowledgeDistillation/annotations/person_keypoints_trainh36m_parcosampling10_CPN.json",
         "category_name": "person",
         "image_shape": [256, 256],
         "target_shape": [64, 64],
@@ -23,7 +23,7 @@
     },
     "test_dataset": {
         "images_dir": "/home/shared/nas/KnowledgeDistillation/mini_h36m",
-        "annotations_file": "/home/shared/nas/KnowledgeDistillation/annotations/person_keypoints_valh36m_vicon.json",
+        "annotations_file": "/home/shared/nas/KnowledgeDistillation/annotations/person_keypoints_valh36m_CPN.json",
         "category_name": "person",
         "image_shape": [256, 256],
         "target_shape": [64, 64],
