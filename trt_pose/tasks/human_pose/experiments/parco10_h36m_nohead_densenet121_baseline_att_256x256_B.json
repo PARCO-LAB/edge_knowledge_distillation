@@ -48,7 +48,7 @@
     },
     "model": {
         "name": "densenet121_baseline_att",
-        "initial_state_dict": "/home/shared/befine/edge_knowledge_distillation/submodule/lib_maeve_py/maeve/nn/trtpose/models/densenet121_baseline_att_256x256_B_epoch_160_parco.pth",
+        "initial_state_dict": "/home/accounts/personale/ldgsfn95/git/edge_knowledge_distillation/submodule/lib_maeve_py/maeve/nn/trtpose/models/densenet121_baseline_att_256x256_B_epoch_160_parco.pth",
         "kwargs": {
             "cmap_channels": 12,
             "paf_channels": 24,

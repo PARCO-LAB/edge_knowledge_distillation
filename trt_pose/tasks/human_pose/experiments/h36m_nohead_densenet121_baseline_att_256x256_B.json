@@ -1,7 +1,7 @@
 {
     "train_dataset": {
-        "images_dir": "/home/shared/nas/KnowledgeDistillation/mini_h36m",
-        "annotations_file": "/home/shared/nas/KnowledgeDistillation/annotations/person_keypoints_trainh36m_vicon.json",
+        "images_dir": "/home/accounts/personale/ldgsfn95/KnowledgeDistillation/KnowledgeDistillation/mini_h36m",
+        "annotations_file": "/home/accounts/personale/ldgsfn95/KnowledgeDistillation/KnowledgeDistillation/annotations/random_sampling_1000_vicon.json",
         "category_name": "person",
         "image_shape": [
             256,
@@ -37,8 +37,8 @@
         "hue": 0.01
     },
     "test_dataset": {
-        "images_dir": "/home/shared/nas/KnowledgeDistillation/mini_h36m",
-        "annotations_file": "/home/shared/nas/KnowledgeDistillation/annotations/person_keypoints_valh36m_vicon.json",
+        "images_dir": "/home/accounts/personale/ldgsfn95/KnowledgeDistillation/KnowledgeDistillation/mini_h36m",
+        "annotations_file": "/home/accounts/personale/ldgsfn95/KnowledgeDistillation/KnowledgeDistillation/annotations/person_keypoints_valh36m_openpose.json",
         "category_name": "person",
         "image_shape": [
             256,
