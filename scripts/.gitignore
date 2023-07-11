@@ -1,0 +1,11 @@
+run_trtpose.bash
+run_openpose.bash
+run_parcopose.bash
+run_parcopose_h36m.bash
+run_parcopose_h36m_actionsampling.bash
+run_parcopose_h36m_confidencesampling.bash
+run_parcopose_h36m_mean_confidencesampling.bash
+run_parcopose_h36m_parcosampling.bash
+run_parcopose_h36m_randomsampling.bash
+run_parcopose_h36m_uniformsampling.bash
+

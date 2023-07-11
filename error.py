@@ -61,7 +61,7 @@ def calculate_mpjpe(skeleton1, skeleton2):
     return mpjpe, np.mean(valid_errors, axis=0)
 
 
-def calculate_mAP(ground_truth_series, predicted_series, threshold=0.5):
+def calculate_mAP(ground_truth_series, predicted_series, threshold=3):
     assert len(ground_truth_series) == len(predicted_series), "Number of ground truth series must be equal to number of predicted series"
 
     num_series = len(ground_truth_series)
@@ -283,6 +283,7 @@ def plot(s1, s2_list):
         fig, ax = plt.subplots(2, 1, figsize=(14, 20))
         sns.barplot(data=data_plot, x="model", y="MPJPE", ax=ax[0])
         ax[0].set_xticklabels(ax[0].get_xticklabels(), rotation=30, fontsize=7)
+        ax[0].set_ylim(0, 12)
         sns.barplot(data=data_plot, x="model", y="mAP", ax=ax[1])
         ax[1].set_xticklabels(ax[1].get_xticklabels(), rotation=30, fontsize=7)
         fig.savefig(plot_name)

@@ -13,6 +13,13 @@ import pprint
 import torch.nn.functional as F
 from coco import CocoDataset, CocoHumanPoseEval
 from models import MODELS
+import numpy as np
+import random
+
+SEED=213445
+torch.manual_seed(SEED)
+random.seed(SEED)
+np.random.seed(SEED)
 
 OPTIMIZERS = {
     'SGD': torch.optim.SGD,

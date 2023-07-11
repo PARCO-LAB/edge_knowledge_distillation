@@ -36,6 +36,10 @@ if __name__ == '__main__':
                         dest="chunk_id",
                         required=True,
                         help="Chunk id")
+    parser.add_argument("--baseline",
+                        dest="baseline",
+                        action="store_true",
+                        help="Enable baseline execution")
     args = parser.parse_args()
 
     chunk_idx_input = int(args.chunk_id)
@@ -58,8 +62,9 @@ if __name__ == '__main__':
     with open(train_annotations_fp, 'r') as f:
         train_annotations_json = json.load(f)
     train_annotations = train_annotations_json["annotations"]
+    train_images = train_annotations_json["images"]
     print("[Train] len: {} chunk_size: {}".format(len(train_annotations_json["annotations"]), train_chunk_size))
-    chunk_amount = np.ceil(len(train_annotations_json["annotations"]) / train_chunk_size) - 1
+    chunk_amount = np.ceil(len(train_annotations_json["annotations"]) / train_chunk_size)
     
     # Get test images
     test_chunk_size = config["test_loader"]["batch_size"]
@@ -72,13 +77,19 @@ if __name__ == '__main__':
     print("[Test] len: {} chunk_size: {}".format(len(test_images), test_chunk_size))
 
     # Get actions and current action id
-    actions = list(dict.fromkeys(["/".join(e["file_name"].split("/")[:3]) for e in test_images]))
-    curr_action_idx = int((chunk_idx_input / chunk_amount) * len(actions))
-    curr_action = actions[curr_action_idx]
-    
+    train_actions = list(dict.fromkeys(["/".join(e["file_name"].split("/")[:3]) for e_i, e in enumerate(train_images) if e_i != 0 and e_i % train_chunk_size == 0]))
+    validation_actions = list(dict.fromkeys(["/".join(e["file_name"].split("/")[:3]) for e in test_images]))
+    curr_action_idx = int((chunk_idx_input / chunk_amount) * len(train_actions))
+    next_action_idx = curr_action_idx + 1
+    curr_action = train_actions[curr_action_idx]
+    next_action = train_actions[min(next_action_idx, len(train_actions) - 1)]
+    if next_action_idx == len(train_actions): 
+        actions = validation_actions[validation_actions.index(curr_action):]
+    else: 
+        actions = validation_actions[validation_actions.index(curr_action):validation_actions.index(next_action)]    
     # Filter test_images
     test_images_dir = config["test_dataset"]["images_dir"]
-    test_images = [os.path.join(e["file_name"]) for e in test_images if curr_action in e["file_name"]]
+    test_images = [os.path.join(e["file_name"]) for e in test_images for a in actions if a in e["file_name"]]
 
     subjects = config["ground_truth"]["subjects"]
     cameras = config["ground_truth"]["cameras"]
@@ -88,7 +99,11 @@ if __name__ == '__main__':
     print("Maeve initialization at chunk {}".format(chunk_idx_input))
     if os.path.exists(os.path.join(checkpoint_dir, 'chunk_%d_trt.pth' % chunk_idx_input)):
         os.remove(os.path.join(checkpoint_dir, 'chunk_%d_trt.pth' % chunk_idx_input))
-    dnn = DNN(kind="densenet", suffix="parco", model_fp=os.path.join(checkpoint_dir, 'chunk_%d.pth' % chunk_idx_input), enable_opt=False).load()
+    if args.baseline: 
+        dnn = DNN(kind="densenet", suffix="parco", enable_opt=False).load()
+    else:
+        dnn = DNN(kind="densenet", suffix="parco", 
+                  model_fp=os.path.join(checkpoint_dir, 'chunk_%d.pth' % chunk_idx_input), enable_opt=False).load()
     print("Maeve inference")
     inference_data = {}
     for id in test_images:
@@ -96,8 +111,10 @@ if __name__ == '__main__':
         cam = id.split("/")[1]
         action = id.split("/")[2].split(".")[0]
         frame_id = int(id.split("/")[3].split(".")[0])
-        inference_data[cam] = {}
-        inference_data[cam][sub] = {}
+        if cam not in inference_data:
+            inference_data[cam] = {}
+        if sub not in inference_data[cam]: 
+            inference_data[cam][sub] = {}
         print(id, end="\r")
         i = 0
         # Get frame
@@ -114,7 +131,10 @@ if __name__ == '__main__':
         scene_df["time"] = i * (1.0 / FRAMERATE)
         df = pd.DataFrame(scene_df, columns=["time", "frame"] + H36M_2D_COLS)
         i += 1
-        inference_data[cam][sub][action] = df
+        if action not in inference_data[cam][sub]:
+            inference_data[cam][sub][action] = df
+        else: 
+            inference_data[cam][sub][action] = pd.concat([inference_data[cam][sub][action], df], axis=0)
 
     print("Calculate distance")
     results_dist = {
@@ -165,5 +185,8 @@ if __name__ == '__main__':
                 for i, e in enumerate(ap): 
                     results_dist["{} AP".format(h36m_kps[i])].append(e)
     results_dist_df = pd.DataFrame(results_dist)
-    results_dist_df.to_csv(os.path.join(checkpoint_dir, "resval_dist_{}.csv".format(chunk_idx_input)))
+    if args.baseline: 
+        results_dist_df.to_csv(os.path.join(checkpoint_dir, "resval_base_dist_{}.csv".format(chunk_idx_input)))
+    else: 
+        results_dist_df.to_csv(os.path.join(checkpoint_dir, "resval_dist_{}.csv".format(chunk_idx_input)))
     write_log_entry_error(logfile_path, results_dist_df, chunk_idx_input)

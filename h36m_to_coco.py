@@ -85,15 +85,21 @@ def get_dataset_amount(subjects, h36m_folder):
             amount = 0
             for f in files: 
                 print(f, end="\r")
-                if os.path.exists(os.path.join(f, "{}.png".format(int(IMAGE_ID_LIMIT - 1)))):
-                    amount += IMAGE_ID_LIMIT
-                    continue
+                if IMAGE_ID_LIMIT is not None:
+                    if os.path.exists(os.path.join(f, "{}.png".format(int(IMAGE_ID_LIMIT - 1)))):
+                        amount += IMAGE_ID_LIMIT
+                        continue
 
-                for i in range(IMAGE_ID_LIMIT - 1, -1, -1):
-                    if os.path.exists(os.path.join(f, "{}.png".format(int(i)))):
-                        amount += i
-                    else: 
-                        break
+                    for i in range(IMAGE_ID_LIMIT - 1, -1, -1):
+                        if os.path.exists(os.path.join(f, "{}.png".format(int(i)))):
+                            amount += i
+                        else: 
+                            break
+                else: 
+                    while True: 
+                        if not os.path.exists(os.path.join(f, "{}.png".format(int(amount)))):
+                            break
+                        amount += 1
 
             amount_dict[camera][sub] = amount
     return amount_dict
@@ -103,9 +109,15 @@ def random_sampling(files, num_samples):
     ret = {}
     num_files = len(files)
     frame_amount_per_file = int(num_samples / num_files)
+    frame_advance_per_file = num_samples % num_files
     
     for fp in files: 
-        ret[fp] = list(sorted(random.sample(range(IMAGE_ID_LIMIT), frame_amount_per_file)))
+        limit = IMAGE_ID_LIMIT if IMAGE_ID_LIMIT is not None else len(pd.read_csv(fp).index)
+        if frame_advance_per_file == 0: 
+            ret[fp] = list(sorted(random.sample(range(limit), frame_amount_per_file)))
+        else: 
+            ret[fp] = list(sorted(random.sample(range(limit), frame_amount_per_file + 1)))
+            frame_advance_per_file -= 1
         print("{}: key-frame amount {}{:20}".format(fp, len(ret[fp]), " "))
 
     return ret
@@ -116,9 +128,15 @@ def uniform_sampling(files, num_samples):
     num_files = len(files)
     
     frame_amount_per_file = int(num_samples / num_files)
-    
+    frame_advance_per_file = num_samples % num_files
+
     for fp in files: 
-        ret[fp] = list(range(0, IMAGE_ID_LIMIT, IMAGE_ID_LIMIT // frame_amount_per_file))[:frame_amount_per_file]
+        limit = IMAGE_ID_LIMIT if IMAGE_ID_LIMIT is not None else len(pd.read_csv(fp).index)
+        if frame_advance_per_file == 0: 
+            ret[fp] = list(range(0, limit, limit // frame_amount_per_file))[:frame_amount_per_file]
+        else:
+            ret[fp] = list(range(0, limit, limit // (frame_amount_per_file + 1)))[:(frame_amount_per_file + 1)]
+            frame_advance_per_file -= 1
         print("{}: key-frame amount {}{:20}".format(fp, len(ret[fp]), " "))
 
     return ret
@@ -139,9 +157,15 @@ def action_sampling(files, num_samples):
     files = [f for f in files if check_action(f)]
     num_files = len(files)
     frame_amount_per_file = int(num_samples / num_files)
+    frame_advance_per_file = num_samples % num_files
     
     for fp in files: 
-        ret[fp] = list(range(0, IMAGE_ID_LIMIT, IMAGE_ID_LIMIT // frame_amount_per_file))[:frame_amount_per_file]
+        limit = IMAGE_ID_LIMIT if IMAGE_ID_LIMIT is not None else len(pd.read_csv(fp).index)
+        if frame_advance_per_file == 0: 
+            ret[fp] = list(range(0, limit, limit // frame_amount_per_file))[:frame_amount_per_file]
+        else: 
+            ret[fp] = list(range(0, limit, limit // (frame_amount_per_file + 1)))[:(frame_amount_per_file + 1)]
+            frame_advance_per_file -= 1
         print("{}: key-frame amount {}{:20}".format(fp, len(ret[fp]), " "))
 
     return ret
@@ -250,6 +274,10 @@ def mpjpe_keyframe_sampling(files, num_samples, teacher, mpjpe_tresh=10, continu
         df_teacher = pd.read_csv(file_teacher_map[fp])[h36m_kp_names].iloc[:IMAGE_ID_LIMIT]
         df = pd.read_csv(fp)[h36m_kp_names].iloc[:IMAGE_ID_LIMIT]
 
+        common_length = min(len(df.index), len(df_teacher.index))
+        df = df.iloc[:common_length]
+        df_teacher = df_teacher.iloc[:common_length]
+
         df_reshape = df.values.reshape((len(df.index), -1, 2))
         df_teacher_reshape = df_teacher.values.reshape((len(df_teacher.index), -1, 2))
 
@@ -350,7 +378,7 @@ def mean_confidence_keyframe_sampling(files, num_samples, continual=False):
             row_indices = list(top_N_rows.index)
             row_indices.sort()
             ret[fp] = list(row_indices)
-            print("{}: key-frame amount {}{:20}".format(fp, len(ret[fp]), " "), end="\r")
+            print("{}: key-frame amount {}{:20}".format(fp, len(ret[fp]), " "))
     
     if continual: 
         all_actions_df = all_actions_df.sort_values("meanACC", ascending=True)
@@ -490,6 +518,14 @@ def generate_on_subjects(subjects, h36m_folder, coco_annotation, output_file, te
                 continualtrain_images_count = 0 
                 continualval_images_count = 0 
                 images_count = 0 
+                tot_frames = IMAGE_ID_LIMIT if IMAGE_ID_LIMIT is not None else len(file.index)
+                
+                # Check for exceeding keyframes
+                if keyframes is not None:
+                    keyframes["{}/{}/{}.csv".format(camera, sub, take)] = [kf
+                        for kf in keyframes["{}/{}/{}.csv".format(camera, sub, take)]
+                        if kf < len(file.index)]
+
                 for i, r in file.iterrows(): 
                     if IMAGE_ID_LIMIT is not None and i >= IMAGE_ID_LIMIT: 
                         break
@@ -505,7 +541,7 @@ def generate_on_subjects(subjects, h36m_folder, coco_annotation, output_file, te
                     annotation = get_annotation(i, r, image_id)
                     annotations.append(annotation)
                     if enable_continual:
-                        if i <= int(IMAGE_ID_LIMIT * CONTINUAL_TRAIN_PERC): 
+                        if i <= int(tot_frames * CONTINUAL_TRAIN_PERC): 
                             out_continual_train["annotations"].append(annotation)
                             out_continual_train["images"].append(image)
                             continualtrain_images_count += 1
@@ -518,6 +554,7 @@ def generate_on_subjects(subjects, h36m_folder, coco_annotation, output_file, te
                 if keyframes is not None and len(keyframes["{}/{}/{}.csv".format(camera, sub, take)]) != images_count:
                     print("Error: images count is not equal to the number of keyframes extracted for sampling {} and perc {} ({} != {})".format(
                         sampling, perc, len(keyframes["{}/{}/{}.csv".format(camera, sub, take)]), images_count))
+                    print(filename)
                     print(keyframes["{}/{}/{}.csv".format(camera, sub, take)])
                     exit()
 
@@ -538,6 +575,8 @@ def generate_on_subjects(subjects, h36m_folder, coco_annotation, output_file, te
             json.dump(out_continual_train, outfile)
         with open(os.path.join(new_folderpath, "continualval_" + output_file), "w") as outfile:
             json.dump(out_continual_val, outfile)
+        with open(os.path.join(new_folderpath, "continual_" + output_file), "w") as outfile:
+            json.dump(out, outfile)
     else: 
         with open(os.path.join(new_folderpath, output_file), "w") as outfile:
             json.dump(out, outfile)
@@ -549,26 +588,26 @@ def main(h36m_folder, coco_annotation):
     # generate_on_subjects(["S9"], h36m_folder, coco_annotation, "person_keypoints_valh36m_vicon.json", teacher="vicon")
     # generate_on_subjects(["S9"], h36m_folder, coco_annotation, "person_keypoints_valh36m_openpose.json", teacher="openpose")
 
-    generate_on_subjects(["S1", "S5", "S6", "S7", "S8"], h36m_folder, coco_annotation, "person_keypoints_trainh36m_vicon.json", teacher="vicon")
-    generate_on_subjects(["S1", "S5", "S6", "S7", "S8"], h36m_folder, coco_annotation, "person_keypoints_trainh36m_openpose.json", teacher="openpose1")
-    generate_on_subjects(["S1", "S5", "S6", "S7", "S8"], h36m_folder, coco_annotation, "person_keypoints_trainh36m_CPN.json", teacher="CPN")
-    generate_on_subjects(["S9", "S11"], h36m_folder, coco_annotation, "person_keypoints_valh36m_vicon.json", teacher="vicon")
-    generate_on_subjects(["S9", "S11"], h36m_folder, coco_annotation, "person_keypoints_valh36m_openpose.json", teacher="openpose1")
-    generate_on_subjects(["S9", "S11"], h36m_folder, coco_annotation, "person_keypoints_valh36m_CPN.json", teacher="CPN")
+    # generate_on_subjects(["S1", "S5", "S6", "S7", "S8"], h36m_folder, coco_annotation, "person_keypoints_trainh36m_vicon.json", teacher="vicon")
+    # generate_on_subjects(["S1", "S5", "S6", "S7", "S8"], h36m_folder, coco_annotation, "person_keypoints_trainh36m_openpose.json", teacher="openpose1")
+    # generate_on_subjects(["S1", "S5", "S6", "S7", "S8"], h36m_folder, coco_annotation, "person_keypoints_trainh36m_CPN.json", teacher="CPN")
+    # generate_on_subjects(["S9", "S11"], h36m_folder, coco_annotation, "person_keypoints_valh36m_vicon.json", teacher="vicon")
+    # generate_on_subjects(["S9", "S11"], h36m_folder, coco_annotation, "person_keypoints_valh36m_openpose.json", teacher="openpose1")
+    # generate_on_subjects(["S9", "S11"], h36m_folder, coco_annotation, "person_keypoints_valh36m_CPN.json", teacher="CPN")
     
     generate_on_subjects(["S1"], h36m_folder, coco_annotation, "person_keypoints_s1_vicon.json", teacher="vicon", enable_continual=True)
     generate_on_subjects(["S1"], h36m_folder, coco_annotation, "person_keypoints_s1_openpose.json", teacher="openpose1", enable_continual=True)
     generate_on_subjects(["S1"], h36m_folder, coco_annotation, "person_keypoints_s1_CPN.json", teacher="CPN", enable_continual=True)
 
-    for teacher in ["vicon", "openpose1", "CPN"]: # ["vicon", "openpose", "CPN"]
+    for teacher in ["vicon", "openpose", "CPN"]: # ["vicon", "openpose", "CPN"]
         for sampling in ["mean_confidence", "confidence", "mpjpe", "uniform", "random", "action", "parco"]: # ["mean_confidence", "confidence", "mpjpe", "uniform", "random", "action", "parco"]
             for perc in [0.01, 0.05, 0.1, 0.2, 0.4]: # [0.01, 0.05, 0.1, 0.2, 0.4]
-                generate_on_subjects(["S1", "S5", "S6", "S7", "S8"], h36m_folder, coco_annotation, 
-                                     "person_keypoints_trainh36m_{}sampling{}_{}.json".format(sampling, int(perc * 100), teacher), 
-                                     teacher=teacher, sampling=sampling, perc=perc)
-                generate_on_subjects(["S9", "S11"], h36m_folder, coco_annotation, 
-                                    "person_keypoints_valh36m_{}sampling{}_{}.json".format(sampling, int(perc * 100), teacher), 
-                                    teacher=teacher, sampling=sampling, perc=perc)
+                # generate_on_subjects(["S1", "S5", "S6", "S7", "S8"], h36m_folder, coco_annotation, 
+                #                      "person_keypoints_trainh36m_{}sampling{}_{}.json".format(sampling, int(perc * 100), teacher), 
+                #                      teacher=teacher, sampling=sampling, perc=perc)
+                # generate_on_subjects(["S9", "S11"], h36m_folder, coco_annotation, 
+                #                     "person_keypoints_valh36m_{}sampling{}_{}.json".format(sampling, int(perc * 100), teacher), 
+                #                     teacher=teacher, sampling=sampling, perc=perc)
                 generate_on_subjects(["S1"], h36m_folder, coco_annotation, 
                                      "person_keypoints_s1_{}sampling{}_{}.json".format(sampling, int(perc * 100), teacher), 
                                      teacher=teacher, sampling=sampling, perc=perc, enable_continual=True)

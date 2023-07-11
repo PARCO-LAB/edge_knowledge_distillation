@@ -172,3 +172,5 @@ apex
 *.tflite
 *.h5
 *h36m*.json
+trt_pose/run_train_continual.bash
+trt_pose/run_train.bash

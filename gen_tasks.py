@@ -14,10 +14,10 @@ REF_TASK = "nohead_densenet121_baseline_att_256x256_B.json"
 INITIAL_MODEL = "densenet121_baseline_att_256x256_B_epoch_160_parco.pth"
 
 SHUFFLE = False
-MAX_NUM_WORKERS = 8
+MAX_NUM_WORKERS = 4
 MEMORY_BATCH_SIZE = 32
 REAL_BATCH_SIZE = 64
-EPOCHS = 30
+EPOCHS = 10
 
 
 CONTINUAL_LEARNING_SUBJECT = "S1"
@@ -234,7 +234,7 @@ def main(repo_folder, data_folder):
         save_continual_task_info(
             ref_task_json, initial_state_dict, images_dir, annotations_dir, tasks_dir, 
             "continualtrain_person_keypoints_{}_{}.json".format(CONTINUAL_LEARNING_SUBJECT.lower(), teacher), 
-            "continualval_person_keypoints_{}_{}.json".format(CONTINUAL_LEARNING_SUBJECT.lower(), teacher), 
+            "continualval_person_keypoints_{}_uniformsampling5_{}.json".format(CONTINUAL_LEARNING_SUBJECT.lower(), teacher), 
             "continual_h36m_{}_{}".format(teacher, REF_TASK))
         
         tasks.append(os.path.join(tasks_dir, "h36m_{}_{}".format(teacher, REF_TASK)))
@@ -249,12 +249,12 @@ def main(repo_folder, data_folder):
                 save_task_info(
                     ref_task_json, initial_state_dict, images_dir, annotations_dir, tasks_dir, 
                    "person_keypoints_trainh36m_{}sampling{}_{}.json".format(sampling, perc_str, teacher), 
-                   "person_keypoints_valh36m_{}.json".format(teacher), 
+                   "person_keypoints_valh36m_uniformsampling5_{}.json".format(teacher), 
                    "{}{}_h36m_{}_{}".format(sampling, perc_str, teacher, REF_TASK))
                 save_continual_task_info(
                     ref_task_json, initial_state_dict, images_dir, annotations_dir, tasks_dir, 
                    "continualtrain_person_keypoints_{}_{}sampling{}_{}.json".format(CONTINUAL_LEARNING_SUBJECT.lower(), sampling, perc_str, teacher), 
-                   "continualval_person_keypoints_{}_{}.json".format(CONTINUAL_LEARNING_SUBJECT.lower(), teacher), 
+                   "continualval_person_keypoints_{}_uniformsampling5_{}.json".format(CONTINUAL_LEARNING_SUBJECT.lower(), teacher), 
                    "continual_{}{}_h36m_{}_{}".format(sampling, perc_str, teacher, REF_TASK))
                 tasks.append(os.path.join(tasks_dir, "{}{}_h36m_{}_{}".format(sampling, perc_str, teacher, REF_TASK)))
                 continual_tasks.append(os.path.join(tasks_dir, "continual_{}{}_h36m_{}_{}".format(sampling, perc_str, teacher, REF_TASK)))

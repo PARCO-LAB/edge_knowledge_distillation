@@ -59,7 +59,7 @@ if __name__ == '__main__':
     print("Maeve initialization at chunk {}".format(chunk_idx_input))
     if os.path.exists(os.path.join(checkpoint_dir, 'chunk_%d_trt.pth' % chunk_idx_input)):
         os.remove(os.path.join(checkpoint_dir, 'chunk_%d_trt.pth' % chunk_idx_input))
-    dnn = DNN(kind="densenet", suffix="parco", model_fp=os.path.join(checkpoint_dir, 'chunk_%d.pth' % chunk_idx_input)).load()
+    dnn = DNN(kind="densenet", suffix="parco", model_fp=os.path.join(checkpoint_dir, 'chunk_%d.pth' % chunk_idx_input), enable_opt=False).load()
     print("Maeve inference")
     inference_data = {}
     for cam in cameras: 

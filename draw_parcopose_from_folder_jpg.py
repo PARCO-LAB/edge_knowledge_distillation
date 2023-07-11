@@ -39,9 +39,9 @@ def init(model_name):
     print("Maeve initialization")
     start = time.time()
     if "parco" in model_name:
-        dnn = DNN(kind="densenet", suffix=model_name).load()
+        dnn = DNN(kind="densenet", suffix=model_name, enable_opt=False).load()
     else:
-        dnn = DNN(kind="densenet").load()
+        dnn = DNN(kind="densenet", enable_opt=False).load()
     end = time.time()
     print("initialization elapsed time: {}".format(get_elapsed(start, end)))
     return dnn
