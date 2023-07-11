@@ -588,12 +588,12 @@ def main(h36m_folder, coco_annotation):
     # generate_on_subjects(["S9"], h36m_folder, coco_annotation, "person_keypoints_valh36m_vicon.json", teacher="vicon")
     # generate_on_subjects(["S9"], h36m_folder, coco_annotation, "person_keypoints_valh36m_openpose.json", teacher="openpose")
 
-    # generate_on_subjects(["S1", "S5", "S6", "S7", "S8"], h36m_folder, coco_annotation, "person_keypoints_trainh36m_vicon.json", teacher="vicon")
-    # generate_on_subjects(["S1", "S5", "S6", "S7", "S8"], h36m_folder, coco_annotation, "person_keypoints_trainh36m_openpose.json", teacher="openpose1")
-    # generate_on_subjects(["S1", "S5", "S6", "S7", "S8"], h36m_folder, coco_annotation, "person_keypoints_trainh36m_CPN.json", teacher="CPN")
-    # generate_on_subjects(["S9", "S11"], h36m_folder, coco_annotation, "person_keypoints_valh36m_vicon.json", teacher="vicon")
-    # generate_on_subjects(["S9", "S11"], h36m_folder, coco_annotation, "person_keypoints_valh36m_openpose.json", teacher="openpose1")
-    # generate_on_subjects(["S9", "S11"], h36m_folder, coco_annotation, "person_keypoints_valh36m_CPN.json", teacher="CPN")
+    generate_on_subjects(["S1", "S5", "S6", "S7", "S8"], h36m_folder, coco_annotation, "person_keypoints_trainh36m_vicon.json", teacher="vicon")
+    generate_on_subjects(["S1", "S5", "S6", "S7", "S8"], h36m_folder, coco_annotation, "person_keypoints_trainh36m_openpose.json", teacher="openpose1")
+    generate_on_subjects(["S1", "S5", "S6", "S7", "S8"], h36m_folder, coco_annotation, "person_keypoints_trainh36m_CPN.json", teacher="CPN")
+    generate_on_subjects(["S9", "S11"], h36m_folder, coco_annotation, "person_keypoints_valh36m_vicon.json", teacher="vicon")
+    generate_on_subjects(["S9", "S11"], h36m_folder, coco_annotation, "person_keypoints_valh36m_openpose.json", teacher="openpose1")
+    generate_on_subjects(["S9", "S11"], h36m_folder, coco_annotation, "person_keypoints_valh36m_CPN.json", teacher="CPN")
     
     generate_on_subjects(["S1"], h36m_folder, coco_annotation, "person_keypoints_s1_vicon.json", teacher="vicon", enable_continual=True)
     generate_on_subjects(["S1"], h36m_folder, coco_annotation, "person_keypoints_s1_openpose.json", teacher="openpose1", enable_continual=True)
@@ -602,12 +602,12 @@ def main(h36m_folder, coco_annotation):
     for teacher in ["vicon", "openpose", "CPN"]: # ["vicon", "openpose", "CPN"]
         for sampling in ["mean_confidence", "confidence", "mpjpe", "uniform", "random", "action", "parco"]: # ["mean_confidence", "confidence", "mpjpe", "uniform", "random", "action", "parco"]
             for perc in [0.01, 0.05, 0.1, 0.2, 0.4]: # [0.01, 0.05, 0.1, 0.2, 0.4]
-                # generate_on_subjects(["S1", "S5", "S6", "S7", "S8"], h36m_folder, coco_annotation, 
-                #                      "person_keypoints_trainh36m_{}sampling{}_{}.json".format(sampling, int(perc * 100), teacher), 
-                #                      teacher=teacher, sampling=sampling, perc=perc)
-                # generate_on_subjects(["S9", "S11"], h36m_folder, coco_annotation, 
-                #                     "person_keypoints_valh36m_{}sampling{}_{}.json".format(sampling, int(perc * 100), teacher), 
-                #                     teacher=teacher, sampling=sampling, perc=perc)
+                generate_on_subjects(["S1", "S5", "S6", "S7", "S8"], h36m_folder, coco_annotation, 
+                                     "person_keypoints_trainh36m_{}sampling{}_{}.json".format(sampling, int(perc * 100), teacher), 
+                                     teacher=teacher, sampling=sampling, perc=perc)
+                generate_on_subjects(["S9", "S11"], h36m_folder, coco_annotation, 
+                                    "person_keypoints_valh36m_{}sampling{}_{}.json".format(sampling, int(perc * 100), teacher), 
+                                    teacher=teacher, sampling=sampling, perc=perc)
                 generate_on_subjects(["S1"], h36m_folder, coco_annotation, 
                                      "person_keypoints_s1_{}sampling{}_{}.json".format(sampling, int(perc * 100), teacher), 
                                      teacher=teacher, sampling=sampling, perc=perc, enable_continual=True)

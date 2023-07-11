@@ -45,6 +45,7 @@ python3 h36m_to_coco.py -hf /home/shared/dataset/h36m -cf /home/shared/nas/datas
 python3 h36m_to_coco.py -hf /home/shared/nas/KnowledgeDistillation/mini_h36m -cf /home/shared/nas/dataset/COCO/annotations/person_keypoints_val2017.json
 
 python3 gen_tasks.py -rf /home/shared/befine/edge_knowledge_distillation -df /home/shared/nas/KnowledgeDistillation
+python3 gen_tasks.py -rf /home/accounts/personale/ldgsfn95/git/edge_knowledge_distillation -df /home/accounts/personale/ldgsfn95/KnowledgeDistillation/KnowledgeDistillation
 
 # Jetson
 python3 h36m_to_coco.py -hf /home/nvidia/dataset/h36m -cf /home/nvidia/nas/dataset/COCO/annotations/person_keypoints_val2017.json
@@ -67,10 +68,6 @@ nohup python3 trt_pose/train.py tasks/human_pose/experiments/parco10_h36m_nohead
 
 nohup python3 trt_pose/continual_train.py tasks/human_pose/experiments/continual_h36m_nohead_densenet121_baseline_att_256x256_B.json &
 nohup bash continual.bash &
-
-sbatch --nodes=1 -w gpunode001 --mem-per-cpu=16198 train_1.sh
-sbatch --nodes=1 -w gpunode002 --mem-per-cpu=16198 train_2.sh
-sbatch --nodes=1 -w gpunode002 --mem-per-cpu=16198 train_perc20-40.sh
 
 cp trt_pose/tasks/human_pose/experiments/h36m_nohead_densenet121_baseline_att_256x256_B.json.checkpoints/epoch_0.pth submodule/lib_maeve_py/maeve/nn/trtpose/models/
 ```
@@ -103,6 +100,14 @@ ffmpeg -y -framerate 15 -i /home/shared/befine/lib_maeve_py/mirco_walking_trtpos
 ffmpeg -y -framerate 15 -i /home/shared/befine/lib_maeve_py/mirco_walking_parcopose/frame_%d.jpg -tag:v hvc1 -c:v libx265 -pix_fmt yuv420p mirco_walking_parcopose.mp4
 ffmpeg -y -framerate 15 -i /home/shared/befine/lib_maeve_py/mirco_walking_parcoposeh36m/frame_%d.jpg -tag:v hvc1 -c:v libx265 -pix_fmt yuv420p mirco_walking_parcoposeh36m.mp4
 ffmpeg -i mirco_walking_trtpose.mp4 -i mirco_walking_parcopose.mp4 -i mirco_walking_parcoposeh36m.mp4 -filter_complex "[0:v]crop=in_h:in_h:in_w/4:0[v0];[1:v]crop=in_h:in_h:in_w/4:0[v1];[2:v]crop=in_h:in_h:in_w/4:0[v2];[v0][v1][v2]hstack=inputs=3" mirco_walking_comparison.mp4
+```
+
+HPC: 
+```
+sbatch --nodes=1 -w gpunode001 --mem-per-cpu=16198 train.bash
+srun --nodes=1 -w gpunode002 --ntasks-per-node=1 --time=01:00:00 --pty bash -i
+srun --nodes=1 -w gpunode002 --mem-per-cpu=16198 python3 parcopose_from_folder.py -f ${action} -n parco_h36m_parcosampling10_vicon -o ${DATASET}${sub}/trtpose_retrained_parcosampling10/
+srun --nodes=1 -w gpunode002 --mem-per-cpu=16198 cmake -DOPENCV_EXTRA_MODULES_PATH=~/git/opencv_contrib/modules -DWITH_CUDA=ON -DCMAKE_BUILD_TYPE=RELEASE -DCMAKE_INSTALL_PREFIX=~/.local -DENABLE_PRECOMPILED_HEADERS=OFF -DCUDA_ARCH_BIN=${OPENCV_ARCH} ..
 ```
 
 Validation: 
