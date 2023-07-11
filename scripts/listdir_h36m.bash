@@ -14,11 +14,15 @@ CAMERAS=(
     "55011271"
 )
 
+
+# DIR="/home/shared/nas/KnowledgeDistillation/h36m"
+DIR="~/nas/KnowledgeDistillation/h36m"
+
 listdir() {
     for cam in ${CAMERAS[*]}; do
         for sub in ${SUBJECTS[*]}; do
             echo "CAMERA ${cam} - SUBJECT ${sub}"
-            for action in $(ls -d /home/shared/nas/KnowledgeDistillation/h36m/${sub}/${cam}/*/); do
+            for action in $(ls -d ${DIR}/${sub}/${cam}/*/); do
                 echo ${action}
             done
         done

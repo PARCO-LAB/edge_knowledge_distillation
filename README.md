@@ -45,7 +45,6 @@ python3 h36m_to_coco.py -hf /home/shared/dataset/h36m -cf /home/shared/nas/datas
 python3 h36m_to_coco.py -hf /home/shared/nas/KnowledgeDistillation/mini_h36m -cf /home/shared/nas/dataset/COCO/annotations/person_keypoints_val2017.json
 
 python3 gen_tasks.py -rf /home/shared/befine/edge_knowledge_distillation -df /home/shared/nas/KnowledgeDistillation
-python3 gen_tasks.py -rf /home/accounts/personale/ldgsfn95/git/edge_knowledge_distillation -df /home/accounts/personale/ldgsfn95/KnowledgeDistillation/KnowledgeDistillation
 
 # Jetson
 python3 h36m_to_coco.py -hf /home/nvidia/dataset/h36m -cf /home/nvidia/nas/dataset/COCO/annotations/person_keypoints_val2017.json
@@ -104,7 +103,19 @@ ffmpeg -i mirco_walking_trtpose.mp4 -i mirco_walking_parcopose.mp4 -i mirco_walk
 
 HPC: 
 ```
-sbatch --nodes=1 -w gpunode001 --mem-per-cpu=16198 train.bash
+sshfs admin@parconas.di.univr.it:/share/MAEVE/ nas -o allow_other -o auto_unmount -o uid=$(id -u) -o gid=$(id -g)
+
+cp ~/nas/KnowledgeDistillation/models/* ~/KnowledgeDistillation/KnowledgeDistillation/models
+bash scripts/copy_mini_h36m.bash
+python3 gen_tasks.py -rf ~/git/edge_knowledge_distillation -df ~/KnowledgeDistillation/KnowledgeDistillation
+
+# Train
+cd trt_pose && sbatch --nodes=1 -w gpunode002 --mem-per-cpu=16198 run_train.bash
+cd trt_pose && sbatch --nodes=1 -w gpunode001 --mem-per-cpu=16198 run_train.bash
+cd trt_pose && sbatch --nodes=1 -w gpunode002 --mem-per-cpu=16198 run_train_continual.bash
+cd trt_pose && sbatch --nodes=1 -w gpunode001 --mem-per-cpu=16198 run_train_continual.bash
+
+# Inference tests
 srun --nodes=1 -w gpunode002 --ntasks-per-node=1 --time=01:00:00 --pty bash -i
 srun --nodes=1 -w gpunode002 --mem-per-cpu=16198 python3 parcopose_from_folder.py -f ${action} -n parco_h36m_parcosampling10_vicon -o ${DATASET}${sub}/trtpose_retrained_parcosampling10/
 srun --nodes=1 -w gpunode002 --mem-per-cpu=16198 cmake -DOPENCV_EXTRA_MODULES_PATH=~/git/opencv_contrib/modules -DWITH_CUDA=ON -DCMAKE_BUILD_TYPE=RELEASE -DCMAKE_INSTALL_PREFIX=~/.local -DENABLE_PRECOMPILED_HEADERS=OFF -DCUDA_ARCH_BIN=${OPENCV_ARCH} ..

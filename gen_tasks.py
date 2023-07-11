@@ -87,9 +87,9 @@ def gen_bash_script(list_of_tasks, name, is_continual):
     script += "\n"
     script += "# module load Python/3.9.16\n"
     script += "# module load cuda11.1\n"
-    script += "# module restore pytorch\n"
+    script += "module restore pytorch\n"
     script += "\n"
-    script += "# source ~/.venv_39/bin/activate\n"
+    script += "source ~/.venv_39/bin/activate\n"
     script += "\n"
 
     if is_continual: 
