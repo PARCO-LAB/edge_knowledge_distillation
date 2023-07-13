@@ -15,8 +15,8 @@ CAMERAS=(
 )
 
 
-# DIR="/home/shared/nas/KnowledgeDistillation/h36m"
-DIR="~/nas/KnowledgeDistillation/h36m"
+DIR="/home/shared/nas/KnowledgeDistillation/h36m"
+# DIR="~/nas/KnowledgeDistillation/h36m"
 
 listdir() {
     for cam in ${CAMERAS[*]}; do

@@ -6,12 +6,17 @@ import numpy as np
 import glob
 import time
 import random
+import math
 
 SEED=213445
 random.seed(SEED)
 
 from error import calculate_svd, calculate_svd_reconstruction, calculate_mpjpe, h36m_kp_names
 
+TEACHERS = ["vicon", "openpose1", "CPN"]
+SAMPLINGS = ["fixedmean_confidence", "fixedconfidence", "fixedmpjpe", "mean_confidence", "confidence", "mpjpe", "uniform", "fixedrandom", "random", "action", "parco"]
+PERCENTAGES = [0.01, 0.05, 0.1, 0.2, 0.4]
+WINDOW = int(50 * 30)
 
 IMAGE_ID_LIMIT = 700
 CONTINUAL_TRAIN_PERC = 0.8
@@ -96,28 +101,63 @@ def get_dataset_amount(subjects, h36m_folder):
                         else: 
                             break
                 else: 
+                    i = 0
                     while True: 
-                        if not os.path.exists(os.path.join(f, "{}.png".format(int(amount)))):
+                        if not os.path.exists(os.path.join(f, "{}.png".format(int(i)))):
                             break
-                        amount += 1
-
+                        i += 1
+                    amount += i
             amount_dict[camera][sub] = amount
     return amount_dict
 
 
 def random_sampling(files, num_samples):
     ret = {}
-    num_files = len(files)
-    frame_amount_per_file = int(num_samples / num_files)
-    frame_advance_per_file = num_samples % num_files
-    
+    all_samples = []
     for fp in files: 
+        ret[fp] = []
         limit = IMAGE_ID_LIMIT if IMAGE_ID_LIMIT is not None else len(pd.read_csv(fp).index)
-        if frame_advance_per_file == 0: 
-            ret[fp] = list(sorted(random.sample(range(limit), frame_amount_per_file)))
-        else: 
-            ret[fp] = list(sorted(random.sample(range(limit), frame_amount_per_file + 1)))
-            frame_advance_per_file -= 1
+        for i in range(limit):
+            all_samples.append({
+                "idx": i,
+                "fp": fp
+            })
+
+    random_sampling = list(random.sample(all_samples, num_samples))
+
+    for e in random_sampling: 
+        ret[e["fp"]].append(e["idx"])
+    for fp in ret: 
+        ret[fp] = sorted(ret[fp])
+        print("{}: key-frame amount {}{:20}".format(fp, len(ret[fp]), " "))
+    return ret
+
+
+def fixedrandom_sampling(files, w_perc):
+    ret = {}
+    
+    all_samples = []
+    for fp in files: 
+        ret[fp] = []
+        limit = IMAGE_ID_LIMIT if IMAGE_ID_LIMIT is not None else len(pd.read_csv(fp).index)
+        for i in range(limit):
+            all_samples.append({
+                "idx": i,
+                "fp": fp
+            })
+    for w_i in range(math.ceil(len(all_samples) / WINDOW)):
+        start_w = w_i*WINDOW
+        end_w = min((w_i+1)*WINDOW, len(all_samples))
+        window_size = end_w - start_w
+        num_samples_for_window = int(w_perc * window_size)
+        curr_window = all_samples[start_w:end_w]
+        curr_window_sampling = list(random.sample(curr_window, num_samples_for_window))
+        print("{}: fixed key-frame amount {} (window_size: {}) {:20}".format(w_i, len(curr_window_sampling), end_w-start_w, " "))
+        for e in curr_window_sampling: 
+            ret[e["fp"]].append(e["idx"])
+
+    for fp in files: 
+        ret[fp] = sorted(ret[fp])
         print("{}: key-frame amount {}{:20}".format(fp, len(ret[fp]), " "))
 
     return ret
@@ -125,20 +165,24 @@ def random_sampling(files, num_samples):
 
 def uniform_sampling(files, num_samples):
     ret = {}
-    num_files = len(files)
-    
-    frame_amount_per_file = int(num_samples / num_files)
-    frame_advance_per_file = num_samples % num_files
-
+    all_samples = []
     for fp in files: 
+        ret[fp] = []
         limit = IMAGE_ID_LIMIT if IMAGE_ID_LIMIT is not None else len(pd.read_csv(fp).index)
-        if frame_advance_per_file == 0: 
-            ret[fp] = list(range(0, limit, limit // frame_amount_per_file))[:frame_amount_per_file]
-        else:
-            ret[fp] = list(range(0, limit, limit // (frame_amount_per_file + 1)))[:(frame_amount_per_file + 1)]
-            frame_advance_per_file -= 1
-        print("{}: key-frame amount {}{:20}".format(fp, len(ret[fp]), " "))
+        for i in range(limit):
+            all_samples.append({
+                "idx": i,
+                "fp": fp
+            })
 
+    uniform_sampling = list(range(0, len(all_samples), len(all_samples) // num_samples))[:num_samples]
+
+    for i in uniform_sampling: 
+        e = all_samples[i]
+        ret[e["fp"]].append(e["idx"])
+    for fp in ret: 
+        ret[fp] = sorted(ret[fp])
+        print("{}: key-frame amount {}{:20}".format(fp, len(ret[fp]), " "))
     return ret
 
 
@@ -146,47 +190,44 @@ def action_sampling(files, num_samples):
     ret = {}
 
     def check_action(f):
-        for a in ["Sitting", "SittingDown", "Eating", "Purchases", "Greeting", "Phoning", "Posing"]:
+        for a in ["Directions", "Discussion", "Phoning", "Smoking", "Photo", "Waiting"]:
             if a in f: 
                 return True
         return False
     
     for fp in files: 
-        ret[fp] = {}
-
+        ret[fp] = []
     files = [f for f in files if check_action(f)]
-    num_files = len(files)
-    frame_amount_per_file = int(num_samples / num_files)
-    frame_advance_per_file = num_samples % num_files
-    
+    all_samples = []
     for fp in files: 
         limit = IMAGE_ID_LIMIT if IMAGE_ID_LIMIT is not None else len(pd.read_csv(fp).index)
-        if frame_advance_per_file == 0: 
-            ret[fp] = list(range(0, limit, limit // frame_amount_per_file))[:frame_amount_per_file]
-        else: 
-            ret[fp] = list(range(0, limit, limit // (frame_amount_per_file + 1)))[:(frame_amount_per_file + 1)]
-            frame_advance_per_file -= 1
-        print("{}: key-frame amount {}{:20}".format(fp, len(ret[fp]), " "))
+        for i in range(limit):
+            all_samples.append({
+                "idx": i,
+                "fp": fp
+            })
 
+    uniform_sampling = list(range(0, len(all_samples), len(all_samples) // num_samples))[:num_samples]
+
+    for i in uniform_sampling: 
+        e = all_samples[i]
+        ret[e["fp"]].append(e["idx"])
+    for fp in ret: 
+        ret[fp] = sorted(ret[fp])
+        print("{}: key-frame amount {}{:20}".format(fp, len(ret[fp]), " "))
     return ret
 
 
-def parco_keyframe_sampling(files, num_samples, num_eigen_vector=15, batch_size=30, continual=False):
+def parco_keyframe_sampling(files, num_samples, num_eigen_vector=15, batch_size=30):
     ret = {}
     if batch_size is None: 
         batch_size = num_eigen_vector
-    
-    num_files = len(files)
-    frame_amount_per_file = int(num_samples / num_files)
-    if continual: 
-        first_good_eigen_vector_for_data_index = []
+    first_good_eigen_vector_for_data_index = []
     for fp in files: 
         print(fp, end="\r")
         df = pd.read_csv(fp)
 
         THRESHOLD_PREC_SVD = 99.8
-        if not continual: 
-            first_good_eigen_vector_for_data_index = []
         for data_window in df.rolling(batch_size): 
             if len(data_window) != batch_size:
                 continue
@@ -200,27 +241,15 @@ def parco_keyframe_sampling(files, num_samples, num_eigen_vector=15, batch_size=
                     first_good_eigen_vector = e_i
             if first_good_eigen_vector is None:
                 first_good_eigen_vector = num_eigen_vector
-            if continual: 
-                first_good_eigen_vector_for_data_index.append({
-                    "fp": fp,
-                    "data_idx": int(data_window.iloc[0]["frame"]),
-                    "eigen_vector_idx": first_good_eigen_vector
-                })
-            else: 
-                first_good_eigen_vector_for_data_index.append({
-                    "data_idx": int(data_window.iloc[0]["frame"]),
-                    "eigen_vector_idx": first_good_eigen_vector
-                })
-        if not continual:
-            first_good_eigen_vector_for_data_index = sorted(
-                first_good_eigen_vector_for_data_index, key=lambda x: x["eigen_vector_idx"], reverse=True)
-        
-            ret[fp] = [e["data_idx"] for e in first_good_eigen_vector_for_data_index[:frame_amount_per_file]]
-    if continual:
-        first_good_eigen_vector_for_data_index = sorted(
-            first_good_eigen_vector_for_data_index, key=lambda x: x["eigen_vector_idx"], reverse=True)
-        for fp in files: 
-            ret[fp] = [e["data_idx"] for e in first_good_eigen_vector_for_data_index[:num_samples] if e["fp"] == fp]
+            first_good_eigen_vector_for_data_index.append({
+                "fp": fp,
+                "data_idx": int(data_window.iloc[0]["frame"]),
+                "eigen_vector_idx": first_good_eigen_vector
+            })
+    first_good_eigen_vector_for_data_index = sorted(
+        first_good_eigen_vector_for_data_index, key=lambda x: x["eigen_vector_idx"], reverse=True)
+    for fp in files: 
+        ret[fp] = [e["data_idx"] for e in first_good_eigen_vector_for_data_index[:num_samples] if e["fp"] == fp]
 
     for fp in files: 
         ret[fp].sort()
@@ -229,12 +258,59 @@ def parco_keyframe_sampling(files, num_samples, num_eigen_vector=15, batch_size=
 
 
 
-def mpjpe_keyframe_sampling(files, num_samples, teacher, mpjpe_tresh=10, continual=False):
+def fixedparco_keyframe_sampling(files, w_perc, num_eigen_vector=15, batch_size=30):
     ret = {}
+    if batch_size is None: 
+        batch_size = num_eigen_vector
     
-    if continual: 
-        all_actions_df = pd.DataFrame()
-   
+    all_samples = []
+    for fp in files: 
+        ret[fp] = []
+        print(fp, end="\r")
+        df = pd.read_csv(fp)
+
+        THRESHOLD_PREC_SVD = 99.8
+        for data_window in df.rolling(batch_size): 
+            if len(data_window) != batch_size:
+                continue
+            if IMAGE_ID_LIMIT is not None and int(data_window.iloc[0]["frame"]) >= IMAGE_ID_LIMIT: 
+                break
+            svd_info = calculate_svd(data_window.values)
+            first_good_eigen_vector = None
+            for e_i in range(1, num_eigen_vector + 1):
+                perc = calculate_svd_reconstruction(data_window.values, svd_info, e_i)
+                if first_good_eigen_vector is None and perc > THRESHOLD_PREC_SVD:
+                    first_good_eigen_vector = e_i
+            if first_good_eigen_vector is None:
+                first_good_eigen_vector = num_eigen_vector
+            all_samples.append({
+                "fp": fp,
+                "data_idx": int(data_window.iloc[0]["frame"]),
+                "eigen_vector_idx": first_good_eigen_vector
+            })
+    
+    for w_i in range(math.ceil(len(all_samples) / WINDOW)):
+        start_w = w_i*WINDOW
+        end_w = min((w_i+1)*WINDOW, len(all_samples))
+        window_size = end_w - start_w
+        num_samples_for_window = int(w_perc * window_size)
+        curr_window = all_samples[start_w:end_w]
+        curr_window_sampling = sorted(curr_window, key=lambda x: x["eigen_vector_idx"], reverse=True)[:num_samples_for_window]
+        print("{}: fixed key-frame amount {} (window_size: {}) {:20}".format(w_i, len(curr_window_sampling), end_w-start_w, " "))
+        for e in curr_window_sampling: 
+            ret[e["fp"]].append(e["idx"])
+
+    for fp in files: 
+        ret[fp] = sorted(ret[fp])
+        print("{}: key-frame amount {}{:20}".format(fp, len(ret[fp]), " "))
+
+    return ret
+
+
+
+def mpjpe_keyframe_sampling(files, num_samples, teacher, mpjpe_tresh=10):
+    ret = {}
+    all_actions_df = pd.DataFrame()
     file_teacher_map = {}
     for fp in files: 
         fp = fp.replace(" ", "")
@@ -264,12 +340,6 @@ def mpjpe_keyframe_sampling(files, num_samples, teacher, mpjpe_tresh=10, continu
         else: 
             print("Warning: unable to calculate MPJPE of file {} with {} teacher".format(fp, teacher))
 
-    num_files = len(files)
-    frame_amount_per_file = int(num_samples / num_files)
-    diff_num_files = len(files) - len(file_teacher_map)
-    frame_amount_to_add = diff_num_files * frame_amount_per_file
-    frame_amount_to_add_for_file = int(np.ceil(frame_amount_to_add / len(file_teacher_map)))
-    
     for fp in file_teacher_map: 
         df_teacher = pd.read_csv(file_teacher_map[fp])[h36m_kp_names].iloc[:IMAGE_ID_LIMIT]
         df = pd.read_csv(fp)[h36m_kp_names].iloc[:IMAGE_ID_LIMIT]
@@ -285,42 +355,98 @@ def mpjpe_keyframe_sampling(files, num_samples, teacher, mpjpe_tresh=10, continu
         mpjpe = np.where(np.isnan(mpjpe), 0, mpjpe)
         df["AVG"] = mpjpe.mean(axis=1)
 
-        if continual: 
-            df["fp"] = fp
-            all_actions_df = pd.concat([all_actions_df, df], axis=0)
-        else: 
-            df_sorted = df.sort_values("AVG", ascending=False)
-            top_N_rows = df_sorted.head(frame_amount_per_file + min(frame_amount_to_add_for_file, frame_amount_to_add))
-            row_indices = list(top_N_rows.index)
-            row_indices.sort()
-            ret[fp] = list(row_indices)
-            print("{}: key-frame amount {}{:20}".format(fp, len(ret[fp]), " "))
-        if (frame_amount_to_add - frame_amount_to_add_for_file) > 0:
-            frame_amount_to_add -= frame_amount_to_add_for_file
-        else: 
-            frame_amount_to_add = 0
+        df["fp"] = fp
+        all_actions_df = pd.concat([all_actions_df, df], axis=0)
     
-    if continual: 
-        all_actions_df = all_actions_df.sort_values("AVG", ascending=False)
-        top_N_rows = all_actions_df.head(num_samples)
-        for fp in files: 
-            row_indices = list(top_N_rows[top_N_rows["fp"] == fp].index)
-            row_indices.sort()
-            ret[fp] = list(row_indices)
-            print("{}: key-frame amount {}{:20}".format(fp, len(ret[fp]), " "))
+    all_actions_df = all_actions_df.sort_values("AVG", ascending=False)
+    top_N_rows = all_actions_df.head(num_samples)
+    for fp in files: 
+        row_indices = list(top_N_rows[top_N_rows["fp"] == fp].index)
+        row_indices.sort()
+        ret[fp] = list(row_indices)
+        print("{}: key-frame amount {}{:20}".format(fp, len(ret[fp]), " "))
 
     return ret
 
 
-def confidence_keyframe_sampling(files, num_samples, continual=False):
-
+def fixedmpjpe_keyframe_sampling(files, w_perc, teacher, mpjpe_tresh=10):
     ret = {}
     
-    num_files = len(files)
-    frame_amount_per_file = int(num_samples / num_files)
+    all_actions_df = pd.DataFrame()
+   
+    file_teacher_map = {}
+    for fp in files: 
+        basename = os.path.basename(fp.replace(" ", ""))
+        action = basename.split(".")[0]
+        if any(c.isdigit() for c in action):
+            actions = [action, "{} {}".format(action[:-1], action[-1])]
+        else: 
+            actions = [action]
+        if "WalkingDog" in actions:
+            actions.extend(["WalkDog"])
+        if "WalkingDog1" in actions:
+            actions.extend(["WalkDog1", "WalkDog 1"])
+        if "TakingPhoto" in actions:
+            actions.extend(["Photo"])
+        if "TakingPhoto1" in actions:
+            actions.extend(["Photo1", "Photo 1"])
+        folder_sub_dirname = os.path.dirname(os.path.dirname(fp))
+        exist_teacher_fp = False
+        for a in actions: 
+            teacher_fp = os.path.join(folder_sub_dirname, teacher, "{}.{}.csv".format(a, basename.split(".")[1]))
+            if os.path.exists(teacher_fp):
+                exist_teacher_fp = True
+                break
+        if exist_teacher_fp: 
+            file_teacher_map[fp] = teacher_fp
+        else: 
+            print("Warning: unable to calculate MPJPE of file {} with {} teacher".format(fp, teacher))
+    
+    max_length = 0
+    for fp in file_teacher_map: 
+        ret[fp] = []
+        df_teacher = pd.read_csv(file_teacher_map[fp])[h36m_kp_names].iloc[:IMAGE_ID_LIMIT]
+        df = pd.read_csv(fp)[h36m_kp_names].iloc[:IMAGE_ID_LIMIT]
 
-    if continual: 
-        all_actions_df = pd.DataFrame()
+        common_length = min(len(df.index), len(df_teacher.index))
+        max_length += max(len(df.index), len(df_teacher.index))
+        df = df.iloc[:common_length]
+        df_teacher = df_teacher.iloc[:common_length]
+
+        df_reshape = df.values.reshape((len(df.index), -1, 2))
+        df_teacher_reshape = df_teacher.values.reshape((len(df_teacher.index), -1, 2))
+
+        mpjpe = np.linalg.norm(df_reshape - df_teacher_reshape, axis=2)
+        mpjpe = np.where(np.isnan(mpjpe), 0, mpjpe)
+        df["AVG"] = mpjpe.mean(axis=1)
+
+        df["fp"] = fp
+        all_actions_df = pd.concat([all_actions_df, df], axis=0)
+
+    diff_length = max_length - len(all_actions_df.index)
+    for w_i in range(math.ceil(len(all_actions_df.index) / WINDOW)):
+        start_w = w_i*WINDOW
+        end_w = min((w_i+1)*WINDOW, len(all_actions_df.index))
+        window_size = end_w - start_w
+        if end_w == len(all_actions_df.index):
+            window_size += diff_length
+        num_samples_for_window = int(w_perc * window_size)
+        curr_window = all_actions_df.iloc[start_w:end_w]
+        curr_window_sampling = curr_window.sort_values("AVG", ascending=False).head(num_samples_for_window)
+        print("{}: fixed key-frame amount {} (window_size: {}) {:20}".format(w_i, len(curr_window_sampling.index), end_w-start_w, " "))
+        for i, e in curr_window_sampling.iterrows(): 
+            ret[e["fp"]].append(i)
+
+    for fp in files: 
+        ret[fp] = sorted(ret[fp])
+        print("{}: key-frame amount {}{:20}".format(fp, len(ret[fp]), " "))
+
+    return ret
+
+
+def confidence_keyframe_sampling(files, num_samples):
+    ret = {}
+    all_actions_df = pd.DataFrame()
    
     for fp in files: 
         df = pd.read_csv(fp).iloc[:IMAGE_ID_LIMIT]
@@ -328,71 +454,110 @@ def confidence_keyframe_sampling(files, num_samples, continual=False):
         df_acc = df.filter(like='ACC')
         min_val = df_acc.min(axis=1)
         df["minACC"] = min_val
-
-        if continual: 
-            df["fp"] = fp
-            all_actions_df = pd.concat([all_actions_df, df], axis=0)
-        else: 
-            df_sorted = df.sort_values("minACC", ascending=True)
-            top_N_rows = df_sorted.head(frame_amount_per_file)
-            row_indices = list(top_N_rows.index)
-            row_indices.sort()
-            ret[fp] = list(row_indices)
-            print("{}: key-frame amount {}{:20}".format(fp, len(ret[fp]), " "), end="\r")
+        df["fp"] = fp
+        all_actions_df = pd.concat([all_actions_df, df], axis=0)
     
-    if continual: 
-        all_actions_df = all_actions_df.sort_values("minACC", ascending=True)
-        top_N_rows = all_actions_df.head(num_samples)
-        for fp in files: 
-            row_indices = list(top_N_rows[top_N_rows["fp"] == fp].index)
-            row_indices.sort()
-            ret[fp] = list(row_indices)
-            print("{}: key-frame amount {}{:20}".format(fp, len(ret[fp]), " "))
+    all_actions_df = all_actions_df.sort_values("minACC", ascending=True)
+    top_N_rows = all_actions_df.head(num_samples)
+    for fp in files: 
+        row_indices = list(top_N_rows[top_N_rows["fp"] == fp].index)
+        row_indices.sort()
+        ret[fp] = list(row_indices)
+        print("{}: key-frame amount {}{:20}".format(fp, len(ret[fp]), " "))
 
     return ret
 
 
-def mean_confidence_keyframe_sampling(files, num_samples, continual=False):
-
+def fixedconfidence_keyframe_sampling(files, w_perc):
     ret = {}
-    
-    num_files = len(files)
-    frame_amount_per_file = int(num_samples / num_files)
+    all_actions_df = pd.DataFrame()
 
-    if continual: 
-        all_actions_df = pd.DataFrame()
-   
+    for fp in files: 
+        ret[fp] = []
+        df = pd.read_csv(fp).iloc[:IMAGE_ID_LIMIT]
+        fp = fp.replace(" ", "")
+        df_acc = df.filter(like='ACC')
+        min_val = df_acc.min(axis=1)
+        df["minACC"] = min_val
+
+        df["fp"] = fp
+        all_actions_df = pd.concat([all_actions_df, df], axis=0)
+
+    for w_i in range(math.ceil(len(all_actions_df.index) / WINDOW)):
+        start_w = w_i*WINDOW
+        end_w = min((w_i+1)*WINDOW, len(all_actions_df.index))
+        window_size = end_w - start_w
+        num_samples_for_window = int(w_perc * window_size)
+        curr_window = all_actions_df.iloc[start_w:end_w]
+        curr_window_sampling = curr_window.sort_values("minACC", ascending=True).head(num_samples_for_window)
+        print("{}: fixed key-frame amount {} (window_size: {}) {:20}".format(w_i, len(curr_window_sampling.index), end_w-start_w, " "))
+        for i, e in curr_window_sampling.iterrows(): 
+            ret[e["fp"]].append(i)
+
+    for fp in files: 
+        ret[fp] = sorted(ret[fp])
+        print("{}: key-frame amount {}{:20}".format(fp, len(ret[fp]), " "))
+
+    return ret
+
+
+def mean_confidence_keyframe_sampling(files, num_samples):
+    ret = {}
+    all_actions_df = pd.DataFrame()
     for fp in files: 
         df = pd.read_csv(fp).iloc[:IMAGE_ID_LIMIT]
         fp = fp.replace(" ", "")
         df_acc = df.filter(like='ACC')
         mean_val = df_acc.mean(axis=1)
         df["meanACC"] = mean_val
-
-        if continual: 
-            df["fp"] = fp
-            all_actions_df = pd.concat([all_actions_df, df], axis=0)
-        else: 
-            df_sorted = df.sort_values("meanACC", ascending=True)
-            top_N_rows = df_sorted.head(frame_amount_per_file)
-            row_indices = list(top_N_rows.index)
-            row_indices.sort()
-            ret[fp] = list(row_indices)
-            print("{}: key-frame amount {}{:20}".format(fp, len(ret[fp]), " "))
+        df["fp"] = fp
+        all_actions_df = pd.concat([all_actions_df, df], axis=0)
     
-    if continual: 
-        all_actions_df = all_actions_df.sort_values("meanACC", ascending=True)
-        top_N_rows = all_actions_df.head(num_samples)
-        for fp in files: 
-            row_indices = list(top_N_rows[top_N_rows["fp"] == fp].index)
-            row_indices.sort()
-            ret[fp] = list(row_indices)
-            print("{}: key-frame amount {}{:20}".format(fp, len(ret[fp]), " "))
+    all_actions_df = all_actions_df.sort_values("meanACC", ascending=True)
+    top_N_rows = all_actions_df.head(num_samples)
+    for fp in files: 
+        row_indices = list(top_N_rows[top_N_rows["fp"] == fp].index)
+        row_indices.sort()
+        ret[fp] = list(row_indices)
+        print("{}: key-frame amount {}{:20}".format(fp, len(ret[fp]), " "))
 
     return ret
 
 
-def get_keyframes(subjects, h36m_folder, sampling, perc, starting_model="trtpose_PARCO", teacher="vicon", continual=False):
+
+def fixedmean_confidence_keyframe_sampling(files, w_perc):
+    ret = {}
+    
+    all_actions_df = pd.DataFrame()
+    for fp in files: 
+        ret[fp] = []
+        df = pd.read_csv(fp).iloc[:IMAGE_ID_LIMIT]
+        fp = fp.replace(" ", "")
+        df_acc = df.filter(like='ACC')
+        mean_val = df_acc.mean(axis=1)
+        df["meanACC"] = mean_val
+        df["fp"] = fp
+        all_actions_df = pd.concat([all_actions_df, df], axis=0)
+    
+    for w_i in range(math.ceil(len(all_actions_df.index) / WINDOW)):
+        start_w = w_i*WINDOW
+        end_w = min((w_i+1)*WINDOW, len(all_actions_df.index))
+        window_size = end_w - start_w
+        num_samples_for_window = int(w_perc * window_size)
+        curr_window = all_actions_df.iloc[start_w:end_w]
+        curr_window_sampling = curr_window.sort_values("meanACC", ascending=True).head(num_samples_for_window)
+        print("{}: fixed key-frame amount {} (window_size: {}) {:20}".format(w_i, len(curr_window_sampling.index), end_w-start_w, " "))
+        for i, e in curr_window_sampling.iterrows(): 
+            ret[e["fp"]].append(i)
+
+    for fp in files: 
+        ret[fp] = sorted(ret[fp])
+        print("{}: key-frame amount {}{:20}".format(fp, len(ret[fp]), " "))
+
+    return ret
+
+
+def get_keyframes(subjects, h36m_folder, sampling, perc, starting_model="trtpose_PARCO", teacher="vicon"):
     if sampling is None or perc is None: 
         return None
     print("Key-frame extraction - {}".format(sampling))
@@ -409,19 +574,27 @@ def get_keyframes(subjects, h36m_folder, sampling, perc, starting_model="trtpose
             
             num_samples = int(lenghts_dataset[camera][sub] * perc)
             if sampling == "parco":
-                cam_sub_keyframes = parco_keyframe_sampling(files, num_samples, continual=continual)
+                cam_sub_keyframes = parco_keyframe_sampling(files, num_samples)
             elif sampling == "uniform":
                 cam_sub_keyframes = uniform_sampling(files, num_samples)
             elif sampling == "random":
                 cam_sub_keyframes = random_sampling(files, num_samples)
+            elif sampling == "fixedrandom":
+                cam_sub_keyframes = fixedrandom_sampling(files, perc)
             elif sampling == "action":
                 cam_sub_keyframes = action_sampling(files, num_samples)
             elif sampling == "mpjpe":
-                cam_sub_keyframes = mpjpe_keyframe_sampling(files, num_samples, teacher, continual=continual)
+                cam_sub_keyframes = mpjpe_keyframe_sampling(files, num_samples, teacher)
             elif sampling == "confidence":
-                cam_sub_keyframes = confidence_keyframe_sampling(files, num_samples, continual=continual)
+                cam_sub_keyframes = confidence_keyframe_sampling(files, num_samples)
             elif sampling == "mean_confidence":
-                cam_sub_keyframes = mean_confidence_keyframe_sampling(files, num_samples, continual=continual)
+                cam_sub_keyframes = mean_confidence_keyframe_sampling(files, num_samples)
+            elif sampling == "fixedmpjpe":
+                cam_sub_keyframes = fixedmpjpe_keyframe_sampling(files, perc, teacher)
+            elif sampling == "fixedconfidence":
+                cam_sub_keyframes = fixedconfidence_keyframe_sampling(files, perc)
+            elif sampling == "fixedmean_confidence":
+                cam_sub_keyframes = fixedmean_confidence_keyframe_sampling(files, perc)
             else: 
                 print("Error: sampling {} not recognized".format(sampling))
                 exit()
@@ -471,7 +644,7 @@ def generate_on_subjects(subjects, h36m_folder, coco_annotation, output_file, te
         out_continual_val["images"] = []
         out_continual_val["annotations"] = []
 
-    keyframes = get_keyframes(subjects, h36m_folder, sampling, perc, teacher=teacher, continual=enable_continual)
+    keyframes = get_keyframes(subjects, h36m_folder, sampling, perc, teacher=teacher)
     # print(list(keyframes.keys()))
 
     # Initialize IMAGES and ANNOTATIONS
@@ -584,33 +757,36 @@ def generate_on_subjects(subjects, h36m_folder, coco_annotation, output_file, te
 
 def main(h36m_folder, coco_annotation):
     # generate_on_subjects(["S1"], h36m_folder, coco_annotation, "person_keypoints_trainh36m_vicon.json", teacher="vicon")
-    # generate_on_subjects(["S1"], h36m_folder, coco_annotation, "person_keypoints_trainh36m_openpose.json", teacher="openpose")
+    # generate_on_subjects(["S1"], h36m_folder, coco_annotation, "person_keypoints_trainh36m_openpose1.json", teacher="openpose1")
     # generate_on_subjects(["S9"], h36m_folder, coco_annotation, "person_keypoints_valh36m_vicon.json", teacher="vicon")
-    # generate_on_subjects(["S9"], h36m_folder, coco_annotation, "person_keypoints_valh36m_openpose.json", teacher="openpose")
+    # generate_on_subjects(["S9"], h36m_folder, coco_annotation, "person_keypoints_valh36m_openpose1.json", teacher="openpose1")
 
     generate_on_subjects(["S1", "S5", "S6", "S7", "S8"], h36m_folder, coco_annotation, "person_keypoints_trainh36m_vicon.json", teacher="vicon")
-    generate_on_subjects(["S1", "S5", "S6", "S7", "S8"], h36m_folder, coco_annotation, "person_keypoints_trainh36m_openpose.json", teacher="openpose1")
+    generate_on_subjects(["S1", "S5", "S6", "S7", "S8"], h36m_folder, coco_annotation, "person_keypoints_trainh36m_openpose1.json", teacher="openpose1")
     generate_on_subjects(["S1", "S5", "S6", "S7", "S8"], h36m_folder, coco_annotation, "person_keypoints_trainh36m_CPN.json", teacher="CPN")
     generate_on_subjects(["S9", "S11"], h36m_folder, coco_annotation, "person_keypoints_valh36m_vicon.json", teacher="vicon")
-    generate_on_subjects(["S9", "S11"], h36m_folder, coco_annotation, "person_keypoints_valh36m_openpose.json", teacher="openpose1")
+    generate_on_subjects(["S9", "S11"], h36m_folder, coco_annotation, "person_keypoints_valh36m_openpose1.json", teacher="openpose1")
     generate_on_subjects(["S9", "S11"], h36m_folder, coco_annotation, "person_keypoints_valh36m_CPN.json", teacher="CPN")
-    
-    generate_on_subjects(["S1"], h36m_folder, coco_annotation, "person_keypoints_s1_vicon.json", teacher="vicon", enable_continual=True)
-    generate_on_subjects(["S1"], h36m_folder, coco_annotation, "person_keypoints_s1_openpose.json", teacher="openpose1", enable_continual=True)
-    generate_on_subjects(["S1"], h36m_folder, coco_annotation, "person_keypoints_s1_CPN.json", teacher="CPN", enable_continual=True)
-
-    for teacher in ["vicon", "openpose", "CPN"]: # ["vicon", "openpose", "CPN"]
-        for sampling in ["mean_confidence", "confidence", "mpjpe", "uniform", "random", "action", "parco"]: # ["mean_confidence", "confidence", "mpjpe", "uniform", "random", "action", "parco"]
-            for perc in [0.01, 0.05, 0.1, 0.2, 0.4]: # [0.01, 0.05, 0.1, 0.2, 0.4]
+    for teacher in TEACHERS: 
+        for sampling in SAMPLINGS: 
+            for perc in PERCENTAGES: 
                 generate_on_subjects(["S1", "S5", "S6", "S7", "S8"], h36m_folder, coco_annotation, 
                                      "person_keypoints_trainh36m_{}sampling{}_{}.json".format(sampling, int(perc * 100), teacher), 
                                      teacher=teacher, sampling=sampling, perc=perc)
                 generate_on_subjects(["S9", "S11"], h36m_folder, coco_annotation, 
                                     "person_keypoints_valh36m_{}sampling{}_{}.json".format(sampling, int(perc * 100), teacher), 
                                     teacher=teacher, sampling=sampling, perc=perc)
-                generate_on_subjects(["S1"], h36m_folder, coco_annotation, 
-                                     "person_keypoints_s1_{}sampling{}_{}.json".format(sampling, int(perc * 100), teacher), 
-                                     teacher=teacher, sampling=sampling, perc=perc, enable_continual=True)
+                
+    # generate_on_subjects(["S1"], h36m_folder, coco_annotation, "person_keypoints_s1_vicon.json", teacher="vicon", enable_continual=True)
+    # generate_on_subjects(["S1"], h36m_folder, coco_annotation, "person_keypoints_s1_openpose1.json", teacher="openpose1", enable_continual=True)
+    # generate_on_subjects(["S1"], h36m_folder, coco_annotation, "person_keypoints_s1_CPN.json", teacher="CPN", enable_continual=True)
+
+    # for teacher in TEACHERS: 
+    #     for sampling in SAMPLINGS: 
+    #         for perc in PERCENTAGES: 
+    #             generate_on_subjects(["S1"], h36m_folder, coco_annotation, 
+    #                                  "person_keypoints_s1_{}sampling{}_{}.json".format(sampling, int(perc * 100), teacher), 
+    #                                  teacher=teacher, sampling=sampling, perc=perc, enable_continual=True)
 
 
 if __name__ == "__main__":

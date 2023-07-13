@@ -1,7 +1,6 @@
 import argparse
 import os
 import json
-import pprint
 
 import sys
 sys.path.append(os.path.join(os.path.dirname(__file__), "..", ".."))
@@ -35,6 +34,10 @@ if __name__ == '__main__':
                         dest="chunk_id",
                         required=True,
                         help="Chunk id")
+    parser.add_argument("--baseline",
+                        dest="baseline",
+                        action="store_true",
+                        help="Enable baseline execution")
     args = parser.parse_args()
 
     chunk_idx_input = int(args.chunk_id)
@@ -42,7 +45,6 @@ if __name__ == '__main__':
     print('Loading config %s' % args.config)
     with open(args.config, 'r') as f:
         config = json.load(f)
-        pprint.pprint(config)
         
     logfile_path = args.config + '.log'
     
@@ -59,7 +61,13 @@ if __name__ == '__main__':
     print("Maeve initialization at chunk {}".format(chunk_idx_input))
     if os.path.exists(os.path.join(checkpoint_dir, 'chunk_%d_trt.pth' % chunk_idx_input)):
         os.remove(os.path.join(checkpoint_dir, 'chunk_%d_trt.pth' % chunk_idx_input))
-    dnn = DNN(kind="densenet", suffix="parco", model_fp=os.path.join(checkpoint_dir, 'chunk_%d.pth' % chunk_idx_input), enable_opt=False).load()
+    if args.baseline or chunk_idx_input == -1: 
+        dnn = DNN(kind="densenet", suffix="parco", 
+                  enable_opt=True).load()
+    else:
+        dnn = DNN(kind="densenet", suffix="parco", 
+                  model_fp=os.path.join(checkpoint_dir, 'chunk_%d.pth' % chunk_idx_input), 
+                  enable_opt=True).load()
     print("Maeve inference")
     inference_data = {}
     for cam in cameras: 
@@ -90,12 +98,11 @@ if __name__ == '__main__':
                     scene_df["time"] = i * (1.0 / FRAMERATE)
                     df = pd.concat([df, scene_df], axis=0)
                     i += 1
-                    if i > 4: 
-                        break
                 inference_data[cam][sub][os.path.basename(a).replace(" ", "")] = df
 
     print("Calculate distance")
     results_dist = {
+        "chunk": [],
         "camera": [],
         "subject": [],
         "action": [],
@@ -132,6 +139,7 @@ if __name__ == '__main__':
 
                 mpjpe, jpe = calculate_mpjpe(df_ground_truth_reshape, df_train_model_reshape)
                 map, ap = calculate_mAP(df_ground_truth_reshape, df_train_model_reshape)
+                results_dist["chunk"].append(chunk_idx_input)
                 results_dist["camera"].append(cam)
                 results_dist["subject"].append(sub)
                 results_dist["action"].append(action_name)
@@ -142,5 +150,20 @@ if __name__ == '__main__':
                 for i, e in enumerate(ap): 
                     results_dist["{} AP".format(h36m_kps[i])].append(e)
     results_dist_df = pd.DataFrame(results_dist)
-    results_dist_df.to_csv(os.path.join(checkpoint_dir, "res_dist_{}.csv".format(chunk_idx_input)))
+
+    if args.baseline: 
+        filename = os.path.join(checkpoint_dir, "restest_base_dist.csv")
+    else: 
+        filename = os.path.join(checkpoint_dir, "restest_dist.csv")
+
+    if os.path.exists(filename):
+        if chunk_idx_input == -1: 
+            data = pd.DataFrame()
+        else: 
+            data = pd.read_csv(filename, index_col=0)
+    else: 
+        data = pd.DataFrame()
+
+    data = pd.concat([data, results_dist_df], axis=0).reset_index(drop=True)
+    data.to_csv(filename)
     write_log_entry_error(logfile_path, results_dist_df, chunk_idx_input)

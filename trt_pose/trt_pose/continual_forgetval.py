@@ -39,10 +39,6 @@ if __name__ == '__main__':
                         dest="baseline",
                         action="store_true",
                         help="Enable baseline execution")
-    parser.add_argument("--testset",
-                        dest="testset",
-                        action="store_true",
-                        help="Enable testset execution")
     args = parser.parse_args()
 
     chunk_idx_input = int(args.chunk_id)
@@ -69,26 +65,14 @@ if __name__ == '__main__':
     chunk_amount = np.ceil(len(train_annotations) / train_chunk_size)
 
     # Get current future chunk images
-    chunk_idx_future = chunk_idx_input + 1
-    if chunk_amount == chunk_idx_future: 
-        print("Exit: reached the amount of chunk")
+    if chunk_idx_input <= 0:
+        print("Exit: cannot evalutate catastrofic forgettin in the first chunk")
         exit()
+    chunk_idx_past = chunk_idx_input - 1
     
     train_images_dir = config["train_dataset"]["images_dir"]
     if not args.baseline: 
-        train_images = train_images[chunk_idx_future*train_chunk_size:(chunk_idx_future+1)*train_chunk_size]
-    if args.testset:
-        test_chunk_size = config["test_loader"]["batch_size"]
-        test_annotations_fp = config["test_dataset"]["annotations_file"]
-        with open(test_annotations_fp, 'r') as f:
-            test_annotations_json = json.load(f)
-        test_annotations = test_annotations_json["annotations"]
-        test_images = test_annotations_json["images"]
-        print("[Test] len: {} chunk_size: {}".format(len(test_annotations), test_chunk_size))
-
-        train_images_dir = config["test_dataset"]["images_dir"]
-        train_images = test_images
-
+        train_images = train_images[chunk_idx_past*train_chunk_size:(chunk_idx_past+1)*train_chunk_size]
     train_images = [e["file_name"] for e in train_images]
 
     ground_truth_model = config["ground_truth"]["model"]
@@ -97,7 +81,7 @@ if __name__ == '__main__':
     print("Maeve initialization at chunk {}".format(chunk_idx_input))
     if os.path.exists(os.path.join(checkpoint_dir, 'chunk_%d_trt.pth' % chunk_idx_input)):
         os.remove(os.path.join(checkpoint_dir, 'chunk_%d_trt.pth' % chunk_idx_input))
-    if args.baseline or chunk_idx_input == -1: 
+    if args.baseline: 
         dnn = DNN(kind="densenet", suffix="parco", 
                   enable_opt=True).load()
     else:
@@ -106,7 +90,7 @@ if __name__ == '__main__':
                   enable_opt=True).load()
     print("Maeve inference")
     inference_data = pd.DataFrame()
-    time = chunk_idx_future * train_chunk_size * (1.0 / FRAMERATE)
+    time = chunk_idx_past * train_chunk_size * (1.0 / FRAMERATE)
     for id in train_images:
         sub = id.split("/")[0]
         cam = id.split("/")[1]
@@ -188,12 +172,12 @@ if __name__ == '__main__':
                         inference_data.loc[(inference_data["cam"] == cam) & (inference_data["sub"] == sub) & (inference_data["action"] == a) & (inference_data["frames"] == f), 
                                            "{} AP".format(h36m_kps[i])] = e
     if args.baseline: 
-        filename = os.path.join(checkpoint_dir, "resval_base_dist.csv")
+        filename = os.path.join(checkpoint_dir, "resforgetval_base_dist.csv")
     else: 
-        filename = os.path.join(checkpoint_dir, "resval_dist.csv")
+        filename = os.path.join(checkpoint_dir, "resforgetval_dist.csv")
 
     if os.path.exists(filename):
-        if chunk_idx_input == -1: 
+        if chunk_idx_input == 1: 
             data = pd.DataFrame()
         else: 
             data = pd.read_csv(filename, index_col=0)

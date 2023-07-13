@@ -125,6 +125,7 @@ def main():
                         "-f", 
                         dest="folder", 
                         required=True, 
+                        nargs="+",
                         help="Folder with images")
     parser.add_argument("--output-folder", 
                         "-o", 
@@ -138,15 +139,17 @@ def main():
                         required=True, 
                         help="Model name (parcopose or trtpose)")
     args = parser.parse_args()
-    res = loop(init(args.name), args.folder)
-    res = res[["time", "frame"] + H36M_2D_COLS]
-    if args.folder[-1] == "/":
-        args.folder = args.folder[:-1]
-    if args.output_folder is None: 
-        res.to_csv("{}.csv".format(args.folder), index=False)
-    else: 
-        name = os.path.basename(args.folder)
-        res.to_csv(os.path.join(args.output_folder, "{}.csv".format(name)), index=False)
+    m = init(args.name)
+    for folder in args.folder:
+        res = loop(m, folder)
+        res = res[["time", "frame"] + H36M_2D_COLS]
+        if folder[-1] == "/":
+            folder = folder[:-1]
+        if args.output_folder is None: 
+            res.to_csv("{}.csv".format(folder), index=False)
+        else: 
+            name = os.path.basename(folder)
+            res.to_csv(os.path.join(args.output_folder, "{}.csv".format(name)), index=False)
 
 
 if __name__ == "__main__":

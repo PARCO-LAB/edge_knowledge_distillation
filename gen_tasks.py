@@ -4,10 +4,8 @@ import os
 import shutil
 import glob
 
+from .h36m_to_coco import TEACHERS, SAMPLINGS, PERCENTAGES
 
-TEACHERS = ["vicon", "openpose1", "CPN"]
-SAMPLINGS = ["mean_confidence", "confidence", "mpjpe", "uniform", "random", "action", "parco"]
-PERCENTAGES = [0.01, 0.05, 0.1, 0.2, 0.4]
 
 REF_HUMAN_POSE = "human_pose_parco.json"
 REF_TASK = "nohead_densenet121_baseline_att_256x256_B.json"
@@ -22,7 +20,7 @@ EPOCHS = 10
 
 CONTINUAL_LEARNING_SUBJECT = "S1"
 CONTINUAL_NUM_WORKERS = 1
-CONTINUAL_CHUNK_SIZE = 128
+CONTINUAL_CHUNK_SIZE = int(50 * 30) # 1500 [0.01: 15]
 CONTINUAL_BATCH_SIZE = 32
 CONTINUAL_EPOCHS = 10
 
@@ -52,21 +50,22 @@ def save_task_info(task_json, initial_state_dict, images_dir, annotation_dir, ta
         f.write(json_data)
 
 
-def save_continual_task_info(task_json, initial_state_dict, images_dir, annotation_dir, tasks_dir, train_file, test_file, name):
+def save_continual_task_info(task_json, initial_state_dict, images_dir, annotation_dir, tasks_dir, train_file, test_file, name, perc=None):
     task_json["model"]["initial_state_dict"] = initial_state_dict
     task_json["train_dataset"]["images_dir"] = images_dir
     task_json["train_dataset"]["annotations_file"] = os.path.join(annotation_dir, train_file)
     task_json["train_dataset"]["image_extension"] = "png"
-    task_json["train_loader"]["batch_size"] = CONTINUAL_CHUNK_SIZE
+    task_json["train_loader"]["batch_size"] = CONTINUAL_CHUNK_SIZE if perc is None else int(CONTINUAL_CHUNK_SIZE * perc)
     task_json["train_loader"]["shuffle"] = SHUFFLE
     task_json["train_loader"]["num_workers"] = CONTINUAL_NUM_WORKERS
     task_json["test_dataset"]["images_dir"] = images_dir
     task_json["test_dataset"]["annotations_file"] = os.path.join(annotation_dir, test_file)
     task_json["test_dataset"]["image_extension"] = "png"
-    task_json["test_loader"]["batch_size"] = CONTINUAL_CHUNK_SIZE
+    task_json["test_loader"]["batch_size"] = CONTINUAL_CHUNK_SIZE if perc is None else int(CONTINUAL_CHUNK_SIZE * perc)
     task_json["test_loader"]["shuffle"] = SHUFFLE
     task_json["test_loader"]["num_workers"] = CONTINUAL_NUM_WORKERS
     task_json["batch_size"] = CONTINUAL_BATCH_SIZE
+    task_json["window"] = CONTINUAL_CHUNK_SIZE
     task_json["epochs"] = CONTINUAL_EPOCHS
     task_json["ground_truth"] = {
         "folder": os.path.join(os.path.dirname(images_dir), "h36m"),
@@ -135,16 +134,20 @@ def gen_inference(repo_folder, teachers, samplings, percentages, name):
 
     template_run = ""
     template_run += "{0}() {{\n"
+    template_run += "    i=0\n"
     template_run += "    for cam in ${{CAMERAS[*]}}; do\n"
     template_run += "        for sub in ${{SUBJECTS[*]}}; do\n"
     template_run += "            echo \"CAMERA ${{cam}} - SUBJECT ${{sub}}\"\n"
     template_run += "            mkdir -p /home/shared/nas/KnowledgeDistillation/h36m/${{sub}}/{0}/\n"
     template_run += "            for action in $(ls -d /home/shared/nas/KnowledgeDistillation/h36m/${{sub}}/${{cam}}/*/); do\n"
     template_run += "                echo ${{action}}\n"
-    template_run += "                {1}python3 parcopose_from_folder.py -f ${{action}} -n {0} -o /home/shared/nas/KnowledgeDistillation/h36m/${{sub}}/{0}/\n"
+    template_run += "                TESTS[${{i}}]=${{action}}\n"
+    template_run += "                i=$(($i + 1))\n"
     template_run += "            done\n"
     template_run += "        done\n"
     template_run += "    done\n"
+    template_run += "    {1}python3 parcopose_from_folder.py -f ${{action}} -n {0} -o /home/shared/nas/KnowledgeDistillation/h36m/${{sub}}/{0}/\n"
+    template_run += "    unset TESTS\n"
     template_run += "}}\n"
     template_run += "\n"
 
@@ -255,7 +258,7 @@ def main(repo_folder, data_folder):
                     ref_task_json, initial_state_dict, images_dir, annotations_dir, tasks_dir, 
                    "continualtrain_person_keypoints_{}_{}sampling{}_{}.json".format(CONTINUAL_LEARNING_SUBJECT.lower(), sampling, perc_str, teacher), 
                    "continualval_person_keypoints_{}_uniformsampling10_{}.json".format(CONTINUAL_LEARNING_SUBJECT.lower(), teacher), 
-                   "continual_{}{}_h36m_{}_{}".format(sampling, perc_str, teacher, REF_TASK))
+                   "continual_{}{}_h36m_{}_{}".format(sampling, perc_str, teacher, REF_TASK), perc)
                 tasks.append(os.path.join(tasks_dir, "{}{}_h36m_{}_{}".format(sampling, perc_str, teacher, REF_TASK)))
                 continual_tasks.append(os.path.join(tasks_dir, "continual_{}{}_h36m_{}_{}".format(sampling, perc_str, teacher, REF_TASK)))
 

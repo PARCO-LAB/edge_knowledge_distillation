@@ -39,10 +39,6 @@ if __name__ == '__main__':
                         dest="baseline",
                         action="store_true",
                         help="Enable baseline execution")
-    parser.add_argument("--testset",
-                        dest="testset",
-                        action="store_true",
-                        help="Enable testset execution")
     args = parser.parse_args()
 
     chunk_idx_input = int(args.chunk_id)
@@ -63,33 +59,47 @@ if __name__ == '__main__':
     train_annotations_fp = config["train_dataset"]["annotations_file"]
     with open(train_annotations_fp, 'r') as f:
         train_annotations_json = json.load(f)
-    train_annotations = train_annotations_json["annotations"]
     train_images = train_annotations_json["images"]
-    print("[Train] len: {} chunk_size: {}".format(len(train_annotations), train_chunk_size))
-    chunk_amount = np.ceil(len(train_annotations) / train_chunk_size)
-
-    # Get current future chunk images
-    chunk_idx_future = chunk_idx_input + 1
-    if chunk_amount == chunk_idx_future: 
-        print("Exit: reached the amount of chunk")
-        exit()
+    print("[Train] len: {} chunk_size: {}".format(len(train_images), train_chunk_size))
+    chunk_amount = np.ceil(len(train_images) / train_chunk_size)
     
-    train_images_dir = config["train_dataset"]["images_dir"]
-    if not args.baseline: 
-        train_images = train_images[chunk_idx_future*train_chunk_size:(chunk_idx_future+1)*train_chunk_size]
-    if args.testset:
-        test_chunk_size = config["test_loader"]["batch_size"]
-        test_annotations_fp = config["test_dataset"]["annotations_file"]
-        with open(test_annotations_fp, 'r') as f:
-            test_annotations_json = json.load(f)
-        test_annotations = test_annotations_json["annotations"]
-        test_images = test_annotations_json["images"]
-        print("[Test] len: {} chunk_size: {}".format(len(test_annotations), test_chunk_size))
+    # Get test images
+    test_chunk_size = config["test_loader"]["batch_size"]
+    test_annotations_fp = config["test_dataset"]["annotations_file"]
+    with open(test_annotations_fp, 'r') as f:
+        test_annotations_json = json.load(f)
+    test_images = test_annotations_json["images"]
+    all_actions = list(dict.fromkeys([e["file_name"].split("/")[2] for e in test_images]))
+    print("[Test] len: {} chunk_size: {}".format(len(test_images), test_chunk_size))
 
-        train_images_dir = config["test_dataset"]["images_dir"]
-        train_images = test_images
+    # Get action of current chunk in test set
+    if chunk_idx_input <= 0:
+        print("Exit: cannot evalutate catastrofic forgettin in the first chunk")
+        exit()
+    curr_train_images = train_images[chunk_idx_input*train_chunk_size:(chunk_idx_input+1)*train_chunk_size]
+    curr_actions = list(dict.fromkeys([e["file_name"].split("/")[2] for e in curr_train_images]))
+    chunk_idx_past = chunk_idx_input - 1
+    past_train_images = train_images[chunk_idx_past*train_chunk_size:(chunk_idx_past+1)*train_chunk_size]
+    past_actions = list(dict.fromkeys([e["file_name"].split("/")[2] for e in past_train_images]))
+    test_actions = []
+    for a in past_actions: 
+        if a in curr_actions:
+            break
+        test_actions.append(a)
 
-    train_images = [e["file_name"] for e in train_images]
+    if args.baseline: 
+        filename = os.path.join(checkpoint_dir, "resforgetactionval_base_dist.csv")
+    else: 
+        filename = os.path.join(checkpoint_dir, "resforgetactionval_dist.csv")
+
+    if len(test_actions) == 0: 
+        if os.path.exists(filename) and chunk_idx_input == 1:
+            os.remove(filename)
+        print("Exit: no forgetting test_actions in chunk {}".format(chunk_idx_input))
+        exit()
+
+    test_images = [e["file_name"] for e in test_images for a in test_actions if a in e["file_name"]]
+    test_images_dir = config["test_dataset"]["images_dir"]
 
     ground_truth_model = config["ground_truth"]["model"]
     ground_truth_folder = config["ground_truth"]["folder"]
@@ -106,15 +116,15 @@ if __name__ == '__main__':
                   enable_opt=True).load()
     print("Maeve inference")
     inference_data = pd.DataFrame()
-    time = chunk_idx_future * train_chunk_size * (1.0 / FRAMERATE)
-    for id in train_images:
+    time = all_actions.index(test_actions[0]) * len(test_images) * (1.0 / FRAMERATE)
+    for id in test_images:
         sub = id.split("/")[0]
         cam = id.split("/")[1]
         action = id.split("/")[2].split(".")[0]
         frame_id = int(id.split("/")[3].split(".")[0])
         print(id, end="\r")
         # Get frame
-        filepath = os.path.join(train_images_dir, id)
+        filepath = os.path.join(test_images_dir, id)
         
         color_frame = cv2.imread(filepath)
         if color_frame is None: 
@@ -145,7 +155,7 @@ if __name__ == '__main__':
                     (inference_data["cam"] == cam) & 
                     (inference_data["sub"] == sub) & 
                     (inference_data["action"] == a)]
-                df_train_model = curr_inference_data[["frames"] + h36m_kp_names]
+                df_train_model = curr_inference_data[h36m_kp_names]
                 
                 # Read ground truth
                 action_name = a.split(".")[0]
@@ -160,40 +170,32 @@ if __name__ == '__main__':
                     print("Error: file {} not exist".format(fp))
                     continue
                 df_ground_truth = pd.read_csv(fp)
-                frames = curr_inference_data["frames"]
-                df_ground_truth = df_ground_truth.loc[df_ground_truth["frames"].isin(frames), ["frames"] + h36m_kp_names]
+                df_ground_truth = df_ground_truth.loc[df_ground_truth["frames"].isin(curr_inference_data["frames"]), h36m_kp_names]
 
                 # Prepare data numpy for mpjpe 
                 df_train_model = df_train_model.reset_index(drop=True)
                 df_ground_truth = df_ground_truth.reset_index(drop=True)
 
-                for f in frames:
-                    df_train_model_curr = df_train_model.loc[df_train_model["frames"] == f, h36m_kp_names].iloc[0]
-                    df_ground_truth_curr = df_ground_truth.loc[df_ground_truth["frames"] == f, h36m_kp_names].iloc[0]
-                    df_train_model_curr_reshape = df_train_model_curr.values.reshape((1, -1, 2))
-                    df_ground_truth_curr_reshape = df_ground_truth_curr.values.reshape((1, -1, 2))
+                df_train_model_reshape = df_train_model.values.reshape((1, -1, 2))
+                df_ground_truth_reshape = df_ground_truth.values.reshape((1, -1, 2))
 
-                    # Calculate mpjpe
-                    mpjpe, jpe = calculate_mpjpe(df_ground_truth_curr_reshape, df_train_model_curr_reshape)
-                    map, ap = calculate_mAP(df_ground_truth_curr_reshape, df_train_model_curr_reshape)
+                # Calculate mpjpe
+                mpjpe, jpe = calculate_mpjpe(df_ground_truth_reshape, df_train_model_reshape)
+                map, ap = calculate_mAP(df_ground_truth_reshape, df_train_model_reshape)
 
-                    inference_data.loc[(inference_data["cam"] == cam) & (inference_data["sub"] == sub) & (inference_data["action"] == a) & (inference_data["frames"] == f), 
-                                       "MPJPE"] = mpjpe
-                    inference_data.loc[(inference_data["cam"] == cam) & (inference_data["sub"] == sub) & (inference_data["action"] == a) & (inference_data["frames"] == f), 
-                                       "mAP"] = map
-                    for i, e in enumerate(jpe): 
-                        inference_data.loc[(inference_data["cam"] == cam) & (inference_data["sub"] == sub) & (inference_data["action"] == a) & (inference_data["frames"] == f), 
-                                           "{} JPE".format(h36m_kps[i])] = e
-                    for i, e in enumerate(ap): 
-                        inference_data.loc[(inference_data["cam"] == cam) & (inference_data["sub"] == sub) & (inference_data["action"] == a) & (inference_data["frames"] == f), 
-                                           "{} AP".format(h36m_kps[i])] = e
-    if args.baseline: 
-        filename = os.path.join(checkpoint_dir, "resval_base_dist.csv")
-    else: 
-        filename = os.path.join(checkpoint_dir, "resval_dist.csv")
-
+                inference_data.loc[(inference_data["cam"] == cam) & (inference_data["sub"] == sub) & (inference_data["action"] == a), 
+                                    "MPJPE"] = mpjpe
+                inference_data.loc[(inference_data["cam"] == cam) & (inference_data["sub"] == sub) & (inference_data["action"] == a), 
+                                    "mAP"] = map
+                for i, e in enumerate(jpe): 
+                    inference_data.loc[(inference_data["cam"] == cam) & (inference_data["sub"] == sub) & (inference_data["action"] == a), 
+                                        "{} JPE".format(h36m_kps[i])] = e
+                for i, e in enumerate(ap): 
+                    inference_data.loc[(inference_data["cam"] == cam) & (inference_data["sub"] == sub) & (inference_data["action"] == a), 
+                                        "{} AP".format(h36m_kps[i])] = e
+    
     if os.path.exists(filename):
-        if chunk_idx_input == -1: 
+        if chunk_idx_input == 1: 
             data = pd.DataFrame()
         else: 
             data = pd.read_csv(filename, index_col=0)
