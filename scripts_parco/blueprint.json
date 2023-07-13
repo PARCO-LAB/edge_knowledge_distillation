@@ -1,0 +1,109 @@
+{
+    "trainable": true,
+    "checkpoint_dir": "/home/shared/nas/KnowledgeDistillation/continual/continual_random_30s_128_32_vicon",
+    "final_state_dict_name": "chunk-000.pth",
+    "train_dataset": {
+        "images_dir": "/home/shared/nas/KnowledgeDistillation/h36m",
+        "annotations_file": "ANNOTATION_TRAIN",
+        "category_name": "person",
+        "image_shape": [
+            256,
+            256
+        ],
+        "target_shape": [
+            64,
+            64
+        ],
+        "stdev": 0.025,
+        "is_bmp": false,
+        "random_angle": [
+            -0.2,
+            0.2
+        ],
+        "random_scale": [
+            0.5,
+            2.0
+        ],
+        "random_translate": [
+            -0.2,
+            0.2
+        ],
+        "image_extension": "png"
+    },
+    "stdev_schedule": {
+        "0": 0.025
+    },
+    "color_jitter": {
+        "brightness": 0.05,
+        "contrast": 0.05,
+        "saturation": 0.05,
+        "hue": 0.01
+    },
+    "test_dataset": {
+        "images_dir": "/home/shared/nas/KnowledgeDistillation/h36m",
+        "annotations_file": "ANNOTATION_TEST",
+        "category_name": "person",
+        "image_shape": [
+            256,
+            256
+        ],
+        "target_shape": [
+            64,
+            64
+        ],
+        "stdev": 0.025,
+        "is_bmp": false,
+        "random_angle": [
+            -0.0,
+            0.0
+        ],
+        "random_scale": [
+            1.0,
+            1.0
+        ],
+        "random_translate": [
+            -0.0,
+            0.0
+        ],
+        "image_extension": "png"
+    },
+    "train_loader": {
+        "batch_size": 32,
+        "shuffle": false,
+        "num_workers": 2,
+        "pin_memory": true
+    },
+    "test_loader": {
+        "batch_size": 32,
+        "shuffle": false,
+        "num_workers": 8,
+        "pin_memory": true
+    },
+    "model": {
+        "name": "densenet121_baseline_att",
+        "kwargs": {
+            "cmap_channels": 12,
+            "paf_channels": 24,
+            "upsample_channels": 256,
+            "num_upsample": 3
+        },
+        "initial_state_dict": "/home/shared/befine/edge_knowledge_distillation/submodule/lib_maeve_py/maeve/nn/trtpose/models/densenet121_baseline_att_256x256_B_epoch_160_parco.pth"
+    },
+    "optimizer": {
+        "name": "Adam",
+        "kwargs": {
+            "lr": 0.001
+        }
+    },
+    "epochs": 250,
+    "batch_size": 64,
+    "lr_schedule": {
+        "0": 0.001,
+        "75": 0.0001,
+        "150": 1e-05
+    },
+    "checkpoints": {
+        "interval": 10
+    },
+    "mask_unlabeled": true
+}
