@@ -57,7 +57,7 @@ def train(config_file):
         pprint.pprint(config)
 
     # custom add: train only if it is trainable (i.e.: not last chunk)
-    if 'trainable' in config and config['trainable'] != 1:
+    if 'trainable' in config and not config['trainable']:
         exit()
         
     logfile_path = config_file + '.log'
@@ -158,11 +158,16 @@ def train(config_file):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('config')
+    parser.add_argument('--file', help="If specified, load only THAT configuration",
+                        default=argparse.SUPPRESS)
     args = parser.parse_args()
 
-    # get all the json and to the train for each one
-    import glob
-    # sorted for lexicographic ordering
-    experiment_files = sorted(glob.glob(os.path.join(args.config, "*.json")))
-    for experiment in experiment_files:
-        train(experiment)
+    if 'file' in args:
+        train(os.path.join(args.config, args.file))
+    else:
+        # get all the json and to the train for each one
+        import glob
+        # sorted for lexicographic ordering
+        experiment_files = sorted(glob.glob(os.path.join(args.config, "*.json")))
+        for experiment in experiment_files:
+            train(experiment)

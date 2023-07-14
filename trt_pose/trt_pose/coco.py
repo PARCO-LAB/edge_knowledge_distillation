@@ -218,7 +218,8 @@ class CocoDataset(torch.utils.data.Dataset):
                  random_translate=(0.0, 0.0),
                  transforms=None,
                  keep_aspect_ratio=False,
-                 image_extension="jpg"):
+                 image_extension="jpg",
+                 custom_return=False):
 
         self.keep_aspect_ratio = keep_aspect_ratio
         self.transforms=transforms
@@ -231,6 +232,7 @@ class CocoDataset(torch.utils.data.Dataset):
         self.random_scale = random_scale
         self.random_translate = random_translate
         self.image_extension = image_extension
+        self.custom_return = custom_return
         
         tensor_cache_file = annotations_file + '.cache'
         
@@ -381,7 +383,10 @@ class CocoDataset(torch.utils.data.Dataset):
         if self.transforms is not None:
             image = self.transforms(image)
             
-        return image, cmap[0], paf[0], torch.from_numpy(np.array(mask))[None, ...]
+        if self.custom_return:
+            return image, cmap[0], paf[0], torch.from_numpy(np.array(mask))[None, ...], filename, peaks
+        else:
+            return image, cmap[0], paf[0], torch.from_numpy(np.array(mask))[None, ...]
 
     def get_part_type_counts(self):
         return torch.sum(self.counts, dim=0)

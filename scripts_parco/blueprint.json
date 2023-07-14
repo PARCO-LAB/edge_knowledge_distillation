@@ -70,13 +70,13 @@
     "train_loader": {
         "batch_size": 32,
         "shuffle": false,
-        "num_workers": 2,
+        "num_workers": 1,
         "pin_memory": true
     },
     "test_loader": {
-        "batch_size": 32,
+        "batch_size": 1,
         "shuffle": false,
-        "num_workers": 8,
+        "num_workers": 1,
         "pin_memory": true
     },
     "model": {

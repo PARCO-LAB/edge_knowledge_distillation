@@ -3,8 +3,9 @@ import pandas as pd
 import glob
 import argparse
 import numpy as np
+import os
 
-def main(order_file, index_file, output_file, subject):
+def main(order_file, index_folder, output_folder, subject, gt, teacher, camera):
 
     W, H = 1000, 1000
 
@@ -47,25 +48,9 @@ def main(order_file, index_file, output_file, subject):
             "id": id
         }
         return ret
-
-    def fix_category_excluding_face(cat):
-        return cat
-        cat["keypoints"] = cat["keypoints"][5:]
-        new_cat_skeleton = []
-        for idx_pair in cat["skeleton"]:
-            mask_drop = [0 for v in idx_pair if v < 5] 
-            if len(mask_drop) == 0:
-                idx_pair[0] -= 5
-                idx_pair[1] -= 5
-                new_cat_skeleton.append(idx_pair)
-        cat["skeleton"] = new_cat_skeleton
-        return cat
-
-
-    camera = '55011271'
-
+    
     # not important the content, just to fix categories
-    with open('/home/shared/nas/KnowledgeDistillation/annotations/continual_person_keypoints_s1_actionsampling1_CPN.json') as f:
+    with open('coco.json') as f:
         coco_json = json.load(f)
 
     train_images = []
@@ -80,23 +65,31 @@ def main(order_file, index_file, output_file, subject):
             order_indexes[row[1]] = row[0]
             order_indexes_arr.append(row[1])
     
-    n = 0
-    with open(index_file) as csv_file:
-        csv_reader = csv.reader(csv_file, delimiter=',')
-        for row in csv_reader:
-            id_in_order = int(row[0])
-            fname = order_indexes_arr[id_in_order]
-            # set what is the expected id
-            file_indexes[fname] = n
-            n = n + 1
+    # generate N indexing file
+    index_files = sorted(glob.glob(index_folder + '/*.txt'))
+    chunk_sizes = []
+    for idx, index_file in enumerate(index_files):
+        n = 0
+        with open(index_file) as csv_file:
+            csv_reader = csv.reader(csv_file, delimiter=',')
+            for row in csv_reader:
+                id_in_order = int(row[0])
+                fname = order_indexes_arr[id_in_order]
+                # set what is the expected id
+                file_indexes[fname] = (idx, n)
+                n = n + 1
+            chunk_sizes.append(n)
     # preallocate size
-    annotations = [None for i in file_indexes]
-    images = [None for i in file_indexes]
+    annotations = [
+        [None for i in range(chunk_size)] for chunk_size in chunk_sizes
+    ]
+    images = [
+        [None for i in range(chunk_size)] for chunk_size in chunk_sizes
+    ]
     
-    base_path = '/home/shared/nas//KnowledgeDistillation/h36m/' +  subject + '/vicon/'
+    base_path = os.path.join(gt, subject, teacher)
 
-    files = glob.glob(base_path + '*' + camera + '*')
-
+    files = glob.glob(base_path + '/*' + camera + '*')
     for filename in files:
         filename_replaced = filename.split('/')[-1].replace(" ","_")
 
@@ -120,35 +113,41 @@ def main(order_file, index_file, output_file, subject):
             current_idx = None
             try:
                 # generates error if not existing, so behave like HashMap
-                current_idx = file_indexes[image_id]
+                current_chunk, current_idx = file_indexes[image_id]
             except KeyError:
                 continue
             
             # set to the correct id    
             image = get_image(image_id, H, W)
-            images[current_idx] = image
+            images[current_chunk][current_idx] = image
             annotation = get_annotation(i, r, image_id)
-            annotations[current_idx] = annotation
+            annotations[current_chunk][current_idx] = annotation
 
     out = {}
     out['info'] = coco_json['info']
-    out['categories'] = [fix_category_excluding_face(coco_json['categories'][0])]
-    # out['categories'] = [coco_json['categories'][0]]
+    out['categories'] = coco_json['categories']
         
-    out["images"] = images
-    out["annotations"] = annotations
 
     # Directly from dictionary
-    with open(output_file, 'w') as outfile:
-        json.dump(out, outfile)
+    for idx, index_file in enumerate(index_files):
+        outfile = os.path.splitext(os.path.basename(index_file))[0] + '.json'
+        
+        out["images"] = images[idx]
+        out["annotations"] = annotations[idx]
+        outfile = os.path.join(output_folder, outfile)
+        with open(outfile, 'w') as outfile:
+            json.dump(out, outfile)
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description="Generate COCO from order", epilog="PARCO")
-    parser.add_argument("--order") 
-    parser.add_argument("--index")
+    parser.add_argument("--order", required=True) 
+    parser.add_argument("--index", required=True)
+    parser.add_argument("--source-folder", required=True, help="Folder to get source data folder")
+    parser.add_argument("--teacher", default="vicon")
     parser.add_argument("--output", default="validation_data.json")
     parser.add_argument("--subject", default="S1")
+    parser.add_argument("--camera", default="55011271")
     args = parser.parse_args()
-    main(args.order, args.index, args.output, args.subject)
+    main(args.order, args.index, args.output, args.subject, args.source_folder, args.teacher, args.camera)
 
 
