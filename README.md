@@ -155,6 +155,9 @@ python3.9 continual_actionval_analysis.py -c ./trt_pose/tasks/human_pose/experim
 
 # CONTINUAL VAL 
 python3.9 continual_val_analysis.py -c ./trt_pose/tasks/human_pose/experiments/continual_h36m_vicon_nohead_densenet121_baseline_att_256x256_B.json  -b ./trt_pose/tasks/human_pose/experiments/continual_h36m_vicon_nohead_densenet121_baseline_att_256x256_B.json
-
 python3.9 continual_val_analysis.py -c ./trt_pose/tasks/human_pose/experiments/continual_h36m_vicon_nohead_densenet121_baseline_att_256x256_B.json  -b ./trt_pose/tasks/human_pose/experiments/continual_h36m_vicon_nohead_densenet121_baseline_att_256x256_B.json error_vicon_trtpose_PARCO_testh36m.csv error_vicon_trtpose_retrained_testh36m.csv
+
+#./trt_pose/tasks/human_pose/experiments/continual_h36m_vicon_nohead_densenet121_baseline_att_256x256_B.json
+python3.9 continual_val_analysis.py -c /home/shared/nas/KnowledgeDistillation/experiments/continual_h36m_vicon_nohead_densenet121_baseline_att_256x256_B.json -b /home/shared/nas/KnowledgeDistillation/experiments/continual_h36m_vicon_nohead_densenet121_baseline_att_256x256_B.json
+
 ```

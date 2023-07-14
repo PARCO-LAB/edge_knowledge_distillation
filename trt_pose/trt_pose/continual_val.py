@@ -68,6 +68,14 @@ if __name__ == '__main__':
     print("[Train] len: {} chunk_size: {}".format(len(train_annotations), train_chunk_size))
     chunk_amount = np.ceil(len(train_annotations) / train_chunk_size)
 
+    # Reference
+    ref_window = config["window"]
+    ref_annotations_fp = config["ref_annotations_file"]
+    with open(ref_annotations_fp, 'r') as f:
+        ref_annotations_json = json.load(f)
+    ref_annotations = ref_annotations_json["annotations"]
+    ref_images = ref_annotations_json["images"]
+
     # Get current future chunk images
     chunk_idx_future = chunk_idx_input + 1
     if chunk_amount == chunk_idx_future: 
@@ -76,7 +84,8 @@ if __name__ == '__main__':
     
     train_images_dir = config["train_dataset"]["images_dir"]
     if not args.baseline: 
-        train_images = train_images[chunk_idx_future*train_chunk_size:(chunk_idx_future+1)*train_chunk_size]
+        train_images = ref_images[chunk_idx_future*ref_window:(chunk_idx_future+1)*ref_window]
+
     if args.testset:
         test_chunk_size = config["test_loader"]["batch_size"]
         test_annotations_fp = config["test_dataset"]["annotations_file"]
@@ -95,8 +104,8 @@ if __name__ == '__main__':
     ground_truth_folder = config["ground_truth"]["folder"]
 
     print("Maeve initialization at chunk {}".format(chunk_idx_input))
-    if os.path.exists(os.path.join(checkpoint_dir, 'chunk_%d_trt.pth' % chunk_idx_input)):
-        os.remove(os.path.join(checkpoint_dir, 'chunk_%d_trt.pth' % chunk_idx_input))
+    # if os.path.exists(os.path.join(checkpoint_dir, 'chunk_%d_trt.pth' % chunk_idx_input)):
+    #     os.remove(os.path.join(checkpoint_dir, 'chunk_%d_trt.pth' % chunk_idx_input))
     if args.baseline or chunk_idx_input == -1: 
         dnn = DNN(kind="densenet", suffix="parco", 
                   enable_opt=True).load()

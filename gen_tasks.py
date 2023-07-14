@@ -4,7 +4,7 @@ import os
 import shutil
 import glob
 
-from .h36m_to_coco import TEACHERS, SAMPLINGS, PERCENTAGES
+from h36m_to_coco import TEACHERS, SAMPLINGS, PERCENTAGES
 
 
 REF_HUMAN_POSE = "human_pose_parco.json"
@@ -20,7 +20,7 @@ EPOCHS = 10
 
 CONTINUAL_LEARNING_SUBJECT = "S1"
 CONTINUAL_NUM_WORKERS = 1
-CONTINUAL_CHUNK_SIZE = int(50 * 30) # 1500 [0.01: 15]
+CONTINUAL_WINDOW = int(50 * 30) # 1500 [0.01: 15]
 CONTINUAL_BATCH_SIZE = 32
 CONTINUAL_EPOCHS = 10
 
@@ -50,22 +50,23 @@ def save_task_info(task_json, initial_state_dict, images_dir, annotation_dir, ta
         f.write(json_data)
 
 
-def save_continual_task_info(task_json, initial_state_dict, images_dir, annotation_dir, tasks_dir, train_file, test_file, name, perc=None):
+def save_continual_task_info(task_json, initial_state_dict, images_dir, annotation_dir, tasks_dir, train_file, ref_train_file, test_file, name, perc=None):
     task_json["model"]["initial_state_dict"] = initial_state_dict
     task_json["train_dataset"]["images_dir"] = images_dir
     task_json["train_dataset"]["annotations_file"] = os.path.join(annotation_dir, train_file)
     task_json["train_dataset"]["image_extension"] = "png"
-    task_json["train_loader"]["batch_size"] = CONTINUAL_CHUNK_SIZE if perc is None else int(CONTINUAL_CHUNK_SIZE * perc)
+    task_json["train_loader"]["batch_size"] = CONTINUAL_WINDOW if perc is None else int(CONTINUAL_WINDOW * perc)
     task_json["train_loader"]["shuffle"] = SHUFFLE
     task_json["train_loader"]["num_workers"] = CONTINUAL_NUM_WORKERS
     task_json["test_dataset"]["images_dir"] = images_dir
     task_json["test_dataset"]["annotations_file"] = os.path.join(annotation_dir, test_file)
     task_json["test_dataset"]["image_extension"] = "png"
-    task_json["test_loader"]["batch_size"] = CONTINUAL_CHUNK_SIZE if perc is None else int(CONTINUAL_CHUNK_SIZE * perc)
+    task_json["test_loader"]["batch_size"] = CONTINUAL_WINDOW if perc is None else int(CONTINUAL_WINDOW * perc)
     task_json["test_loader"]["shuffle"] = SHUFFLE
     task_json["test_loader"]["num_workers"] = CONTINUAL_NUM_WORKERS
+    task_json["ref_annotations_file"] = os.path.join(annotation_dir, ref_train_file)
     task_json["batch_size"] = CONTINUAL_BATCH_SIZE
-    task_json["window"] = CONTINUAL_CHUNK_SIZE
+    task_json["window"] = CONTINUAL_WINDOW
     task_json["epochs"] = CONTINUAL_EPOCHS
     task_json["ground_truth"] = {
         "folder": os.path.join(os.path.dirname(images_dir), "h36m"),
@@ -237,6 +238,7 @@ def main(repo_folder, data_folder):
         save_continual_task_info(
             ref_task_json, initial_state_dict, images_dir, annotations_dir, tasks_dir, 
             "continualtrain_person_keypoints_{}_{}.json".format(CONTINUAL_LEARNING_SUBJECT.lower(), teacher), 
+            "continualtrain_person_keypoints_{}_{}.json".format(CONTINUAL_LEARNING_SUBJECT.lower(), teacher), 
             "continualval_person_keypoints_{}_uniformsampling10_{}.json".format(CONTINUAL_LEARNING_SUBJECT.lower(), teacher), 
             "continual_h36m_{}_{}".format(teacher, REF_TASK))
         
@@ -257,6 +259,7 @@ def main(repo_folder, data_folder):
                 save_continual_task_info(
                     ref_task_json, initial_state_dict, images_dir, annotations_dir, tasks_dir, 
                    "continualtrain_person_keypoints_{}_{}sampling{}_{}.json".format(CONTINUAL_LEARNING_SUBJECT.lower(), sampling, perc_str, teacher), 
+                   "continualtrain_person_keypoints_{}_{}.json".format(CONTINUAL_LEARNING_SUBJECT.lower(), teacher), 
                    "continualval_person_keypoints_{}_uniformsampling10_{}.json".format(CONTINUAL_LEARNING_SUBJECT.lower(), teacher), 
                    "continual_{}{}_h36m_{}_{}".format(sampling, perc_str, teacher, REF_TASK), perc)
                 tasks.append(os.path.join(tasks_dir, "{}{}_h36m_{}_{}".format(sampling, perc_str, teacher, REF_TASK)))

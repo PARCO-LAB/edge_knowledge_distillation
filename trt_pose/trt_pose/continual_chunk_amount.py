@@ -20,6 +20,7 @@ if __name__ == '__main__':
         train_annotations_json = json.load(f)
 
     train_annotations = train_annotations_json["annotations"]
+    # print(len(train_annotations))
     chunk_amount = math.ceil(len(train_annotations_json["annotations"]) / chunk_size)
 
     print(chunk_amount)

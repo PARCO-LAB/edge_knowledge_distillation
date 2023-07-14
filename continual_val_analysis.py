@@ -22,7 +22,7 @@ def compute_checkpoint(checkpoint_fp, prefix, train=True):
         print("Error: checkpoint {} doesn't exist".format(fp))
         exit()
 
-    df_checkpoint = pd.read_csv(fp, index_col=0)
+    df_checkpoint = pd.read_csv(fp, index_col=0).reset_index(drop=True)
     train_idx = np.arange(0, len(df_checkpoint.index), chunk_size)
     df_checkpoint["train"] = False
     df_checkpoint.loc[train_idx, "train"] = train

@@ -94,11 +94,6 @@ if __name__ == '__main__':
     
     train_dataset = CocoDataset(**train_dataset_kwargs)
     
-    train_loader = torch.utils.data.DataLoader(
-        train_dataset,
-        **config["train_loader"]
-    )
-    
     model = MODELS[config['model']['name']](**config['model']['kwargs']).to(device)
     
     if "initial_state_dict" in config['model'] and chunk_idx_input == 0:
@@ -122,44 +117,54 @@ if __name__ == '__main__':
     # for epoch in range(config["epochs"]):
         
     train_chunk_size = config["train_loader"]["batch_size"]
-    chunk_i = 0
-    for image_train, cmap_train, paf_train, mask_train in tqdm.tqdm(iter(train_loader)): # Chunk
-        if chunk_i != chunk_idx_input:
-            chunk_i += 1
-            continue
-        train_loss = 0.0
-        model = model.train()
-        for epoch in range(config["epochs"]):
-            for batch_i in range(int(train_chunk_size / config["batch_size"])):
-                image = image_train[batch_i*config["batch_size"]:(batch_i + 1)*config["batch_size"]].to(device)
-                cmap = cmap_train[batch_i*config["batch_size"]:(batch_i + 1)*config["batch_size"]].to(device)
-                paf = paf_train[batch_i*config["batch_size"]:(batch_i + 1)*config["batch_size"]].to(device)
-                
-                if mask_unlabeled:
-                    mask = mask_train[batch_i*config["batch_size"]:(batch_i + 1)*config["batch_size"]].to(device).float()
-                else:
-                    mask = torch.ones_like(mask_train)[batch_i*config["batch_size"]:(batch_i + 1)*config["batch_size"]].to(device).float()
-                optimizer.zero_grad()
-                cmap_out, paf_out = model(image)
-                #print("out: ", cmap_out.shape, paf_out.shape, image.shape)
-                #print("gt: ", cmap.shape, paf.shape)
+    start_frame = chunk_idx_input * train_chunk_size
+    end_frame = (chunk_idx_input + 1) * train_chunk_size
 
-                cmap_mse = torch.mean(mask * (cmap_out - cmap)**2)
-                paf_mse = torch.mean(mask * (paf_out - paf)**2)
+    image_train, cmap_train, paf_train, mask_train = [], [], [], []
+    for i, (image_i, cmap_i, paf_i, mask_i) in enumerate(train_dataset): # Chunk
+        if i >= end_frame:
+            break
+        print(i, end="\r")
+        if i >= start_frame: 
+            image_train.append(image_i.numpy())
+            cmap_train.append(cmap_i.numpy())
+            paf_train.append(paf_i.numpy())
+            mask_train.append(mask_i.numpy())
+
+    image_train, cmap_train, paf_train, mask_train = np.array(image_train), np.array(cmap_train), np.array(paf_train), np.array(mask_train)
+    image_train, cmap_train, paf_train, mask_train = torch.FloatTensor(image_train), torch.FloatTensor(cmap_train), torch.FloatTensor(paf_train), torch.FloatTensor(mask_train)
+    train_loss = 0.0
+    model = model.train()
+    for epoch in range(config["epochs"]):
+        for batch_i in range(max(1, int(train_chunk_size / config["batch_size"]))):
+            image = image_train[batch_i*config["batch_size"]:(batch_i + 1)*config["batch_size"]].to(device)
+            cmap = cmap_train[batch_i*config["batch_size"]:(batch_i + 1)*config["batch_size"]].to(device)
+            paf = paf_train[batch_i*config["batch_size"]:(batch_i + 1)*config["batch_size"]].to(device)
             
-                loss = cmap_mse + paf_mse
-                
-                with amp.scale_loss(loss, optimizer) as scaled_loss:
-                    scaled_loss.backward()
+            if mask_unlabeled:
+                mask = mask_train[batch_i*config["batch_size"]:(batch_i + 1)*config["batch_size"]].to(device).float()
+            else:
+                mask = torch.ones_like(mask_train)[batch_i*config["batch_size"]:(batch_i + 1)*config["batch_size"]].to(device).float()
+            optimizer.zero_grad()
+            cmap_out, paf_out = model(image)
+            #print("out: ", cmap_out.shape, paf_out.shape, image.shape)
+            #print("gt: ", cmap.shape, paf.shape)
 
-                optimizer.step() # TODO: try to untab
-
-                train_loss += float(loss)
+            cmap_mse = torch.mean(mask * (cmap_out - cmap)**2)
+            paf_mse = torch.mean(mask * (paf_out - paf)**2)
+        
+            loss = cmap_mse + paf_mse
             
-            train_loss /= int(train_chunk_size / config["batch_size"])
-            
-            write_log_entry(logfile_path, epoch, train_loss, lr, chunk_i)
+            with amp.scale_loss(loss, optimizer) as scaled_loss:
+                scaled_loss.backward()
 
-        save_checkpoint(model, checkpoint_dir, chunk_i) 
-        exit()
+            optimizer.step() # TODO: try to untab
+
+            train_loss += float(loss)
+        
+        train_loss /= max(1, int(train_chunk_size / config["batch_size"]))
+        
+        write_log_entry(logfile_path, epoch, train_loss, lr, chunk_idx_input)
+
+    save_checkpoint(model, checkpoint_dir, chunk_idx_input) 
         

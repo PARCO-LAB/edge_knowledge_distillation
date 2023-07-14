@@ -767,21 +767,21 @@ def main(h36m_folder, coco_annotation):
     # generate_on_subjects(["S9"], h36m_folder, coco_annotation, "person_keypoints_valh36m_vicon.json", teacher="vicon")
     # generate_on_subjects(["S9"], h36m_folder, coco_annotation, "person_keypoints_valh36m_openpose1.json", teacher="openpose1")
 
-    # generate_on_subjects(["S1", "S5", "S6", "S7", "S8"], h36m_folder, coco_annotation, "person_keypoints_trainh36m_vicon.json", teacher="vicon")
-    # generate_on_subjects(["S1", "S5", "S6", "S7", "S8"], h36m_folder, coco_annotation, "person_keypoints_trainh36m_openpose1.json", teacher="openpose1")
-    # generate_on_subjects(["S1", "S5", "S6", "S7", "S8"], h36m_folder, coco_annotation, "person_keypoints_trainh36m_CPN.json", teacher="CPN")
-    # generate_on_subjects(["S9", "S11"], h36m_folder, coco_annotation, "person_keypoints_valh36m_vicon.json", teacher="vicon")
-    # generate_on_subjects(["S9", "S11"], h36m_folder, coco_annotation, "person_keypoints_valh36m_openpose1.json", teacher="openpose1")
-    # generate_on_subjects(["S9", "S11"], h36m_folder, coco_annotation, "person_keypoints_valh36m_CPN.json", teacher="CPN")
-    # for teacher in TEACHERS: 
-    #     for sampling in SAMPLINGS: 
-    #         for perc in PERCENTAGES: 
-    #             generate_on_subjects(["S1", "S5", "S6", "S7", "S8"], h36m_folder, coco_annotation, 
-    #                                  "person_keypoints_trainh36m_{}sampling{}_{}.json".format(sampling, int(perc * 100), teacher), 
-    #                                  teacher=teacher, sampling=sampling, perc=perc)
-    #             generate_on_subjects(["S9", "S11"], h36m_folder, coco_annotation, 
-    #                                 "person_keypoints_valh36m_{}sampling{}_{}.json".format(sampling, int(perc * 100), teacher), 
-    #                                 teacher=teacher, sampling=sampling, perc=perc)
+    generate_on_subjects(["S1", "S5", "S6", "S7", "S8"], h36m_folder, coco_annotation, "person_keypoints_trainh36m_vicon.json", teacher="vicon")
+    generate_on_subjects(["S1", "S5", "S6", "S7", "S8"], h36m_folder, coco_annotation, "person_keypoints_trainh36m_openpose1.json", teacher="openpose1")
+    generate_on_subjects(["S1", "S5", "S6", "S7", "S8"], h36m_folder, coco_annotation, "person_keypoints_trainh36m_CPN.json", teacher="CPN")
+    generate_on_subjects(["S9", "S11"], h36m_folder, coco_annotation, "person_keypoints_valh36m_vicon.json", teacher="vicon")
+    generate_on_subjects(["S9", "S11"], h36m_folder, coco_annotation, "person_keypoints_valh36m_openpose1.json", teacher="openpose1")
+    generate_on_subjects(["S9", "S11"], h36m_folder, coco_annotation, "person_keypoints_valh36m_CPN.json", teacher="CPN")
+    for teacher in TEACHERS: 
+        for sampling in SAMPLINGS: 
+            for perc in PERCENTAGES: 
+                generate_on_subjects(["S1", "S5", "S6", "S7", "S8"], h36m_folder, coco_annotation, 
+                                     "person_keypoints_trainh36m_{}sampling{}_{}.json".format(sampling, int(perc * 100), teacher), 
+                                     teacher=teacher, sampling=sampling, perc=perc)
+                generate_on_subjects(["S9", "S11"], h36m_folder, coco_annotation, 
+                                    "person_keypoints_valh36m_{}sampling{}_{}.json".format(sampling, int(perc * 100), teacher), 
+                                    teacher=teacher, sampling=sampling, perc=perc)
                 
     generate_on_subjects(["S1"], h36m_folder, coco_annotation, "person_keypoints_s1_vicon.json", teacher="vicon", enable_continual=True)
     generate_on_subjects(["S1"], h36m_folder, coco_annotation, "person_keypoints_s1_openpose1.json", teacher="openpose1", enable_continual=True)
