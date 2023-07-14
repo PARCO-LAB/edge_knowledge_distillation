@@ -11,14 +11,14 @@ import math
 SEED=213445
 random.seed(SEED)
 
-from error import calculate_svd, calculate_svd_reconstruction, calculate_mpjpe, h36m_kp_names
+from error import calculate_svd, calculate_svd_reconstruction, h36m_kp_names
 
 TEACHERS = ["vicon", "openpose1", "CPN"]
 SAMPLINGS = ["fixedmean_confidence", "fixedconfidence", "fixedmpjpe", "mean_confidence", "confidence", "mpjpe", "uniform", "fixedrandom", "random", "action", "parco"]
 PERCENTAGES = [0.01, 0.05, 0.1, 0.2, 0.4]
 WINDOW = int(50 * 30)
 
-IMAGE_ID_LIMIT = 700
+IMAGE_ID_LIMIT = None
 CONTINUAL_TRAIN_PERC = 0.8
 W, H = 1000, 1000
 
@@ -313,6 +313,7 @@ def mpjpe_keyframe_sampling(files, num_samples, teacher, mpjpe_tresh=10):
     all_actions_df = pd.DataFrame()
     file_teacher_map = {}
     for fp in files: 
+        ret[fp] = []
         fp = fp.replace(" ", "")
         basename = os.path.basename(fp)
         action = basename.split(".")[0]
@@ -360,7 +361,7 @@ def mpjpe_keyframe_sampling(files, num_samples, teacher, mpjpe_tresh=10):
     
     all_actions_df = all_actions_df.sort_values("AVG", ascending=False)
     top_N_rows = all_actions_df.head(num_samples)
-    for fp in files: 
+    for fp in file_teacher_map: 
         row_indices = list(top_N_rows[top_N_rows["fp"] == fp].index)
         row_indices.sort()
         ret[fp] = list(row_indices)
@@ -375,7 +376,9 @@ def fixedmpjpe_keyframe_sampling(files, w_perc, teacher, mpjpe_tresh=10):
     all_actions_df = pd.DataFrame()
    
     file_teacher_map = {}
+    missing = 0
     for fp in files: 
+        ret[fp] = []
         basename = os.path.basename(fp.replace(" ", ""))
         action = basename.split(".")[0]
         if any(c.isdigit() for c in action):
@@ -401,10 +404,10 @@ def fixedmpjpe_keyframe_sampling(files, w_perc, teacher, mpjpe_tresh=10):
             file_teacher_map[fp] = teacher_fp
         else: 
             print("Warning: unable to calculate MPJPE of file {} with {} teacher".format(fp, teacher))
+            missing += 1
     
     max_length = 0
     for fp in file_teacher_map: 
-        ret[fp] = []
         df_teacher = pd.read_csv(file_teacher_map[fp])[h36m_kp_names].iloc[:IMAGE_ID_LIMIT]
         df = pd.read_csv(fp)[h36m_kp_names].iloc[:IMAGE_ID_LIMIT]
 
@@ -428,6 +431,9 @@ def fixedmpjpe_keyframe_sampling(files, w_perc, teacher, mpjpe_tresh=10):
         start_w = w_i*WINDOW
         end_w = min((w_i+1)*WINDOW, len(all_actions_df.index))
         window_size = end_w - start_w
+        if IMAGE_ID_LIMIT is not None and missing > 0: 
+            window_size += IMAGE_ID_LIMIT
+            missing -= 1
         if end_w == len(all_actions_df.index):
             window_size += diff_length
         num_samples_for_window = int(w_perc * window_size)
@@ -437,7 +443,7 @@ def fixedmpjpe_keyframe_sampling(files, w_perc, teacher, mpjpe_tresh=10):
         for i, e in curr_window_sampling.iterrows(): 
             ret[e["fp"]].append(i)
 
-    for fp in files: 
+    for fp in ret: 
         ret[fp] = sorted(ret[fp])
         print("{}: key-frame amount {}{:20}".format(fp, len(ret[fp]), " "))
 
@@ -761,32 +767,32 @@ def main(h36m_folder, coco_annotation):
     # generate_on_subjects(["S9"], h36m_folder, coco_annotation, "person_keypoints_valh36m_vicon.json", teacher="vicon")
     # generate_on_subjects(["S9"], h36m_folder, coco_annotation, "person_keypoints_valh36m_openpose1.json", teacher="openpose1")
 
-    generate_on_subjects(["S1", "S5", "S6", "S7", "S8"], h36m_folder, coco_annotation, "person_keypoints_trainh36m_vicon.json", teacher="vicon")
-    generate_on_subjects(["S1", "S5", "S6", "S7", "S8"], h36m_folder, coco_annotation, "person_keypoints_trainh36m_openpose1.json", teacher="openpose1")
-    generate_on_subjects(["S1", "S5", "S6", "S7", "S8"], h36m_folder, coco_annotation, "person_keypoints_trainh36m_CPN.json", teacher="CPN")
-    generate_on_subjects(["S9", "S11"], h36m_folder, coco_annotation, "person_keypoints_valh36m_vicon.json", teacher="vicon")
-    generate_on_subjects(["S9", "S11"], h36m_folder, coco_annotation, "person_keypoints_valh36m_openpose1.json", teacher="openpose1")
-    generate_on_subjects(["S9", "S11"], h36m_folder, coco_annotation, "person_keypoints_valh36m_CPN.json", teacher="CPN")
-    for teacher in TEACHERS: 
-        for sampling in SAMPLINGS: 
-            for perc in PERCENTAGES: 
-                generate_on_subjects(["S1", "S5", "S6", "S7", "S8"], h36m_folder, coco_annotation, 
-                                     "person_keypoints_trainh36m_{}sampling{}_{}.json".format(sampling, int(perc * 100), teacher), 
-                                     teacher=teacher, sampling=sampling, perc=perc)
-                generate_on_subjects(["S9", "S11"], h36m_folder, coco_annotation, 
-                                    "person_keypoints_valh36m_{}sampling{}_{}.json".format(sampling, int(perc * 100), teacher), 
-                                    teacher=teacher, sampling=sampling, perc=perc)
-                
-    # generate_on_subjects(["S1"], h36m_folder, coco_annotation, "person_keypoints_s1_vicon.json", teacher="vicon", enable_continual=True)
-    # generate_on_subjects(["S1"], h36m_folder, coco_annotation, "person_keypoints_s1_openpose1.json", teacher="openpose1", enable_continual=True)
-    # generate_on_subjects(["S1"], h36m_folder, coco_annotation, "person_keypoints_s1_CPN.json", teacher="CPN", enable_continual=True)
-
+    # generate_on_subjects(["S1", "S5", "S6", "S7", "S8"], h36m_folder, coco_annotation, "person_keypoints_trainh36m_vicon.json", teacher="vicon")
+    # generate_on_subjects(["S1", "S5", "S6", "S7", "S8"], h36m_folder, coco_annotation, "person_keypoints_trainh36m_openpose1.json", teacher="openpose1")
+    # generate_on_subjects(["S1", "S5", "S6", "S7", "S8"], h36m_folder, coco_annotation, "person_keypoints_trainh36m_CPN.json", teacher="CPN")
+    # generate_on_subjects(["S9", "S11"], h36m_folder, coco_annotation, "person_keypoints_valh36m_vicon.json", teacher="vicon")
+    # generate_on_subjects(["S9", "S11"], h36m_folder, coco_annotation, "person_keypoints_valh36m_openpose1.json", teacher="openpose1")
+    # generate_on_subjects(["S9", "S11"], h36m_folder, coco_annotation, "person_keypoints_valh36m_CPN.json", teacher="CPN")
     # for teacher in TEACHERS: 
     #     for sampling in SAMPLINGS: 
     #         for perc in PERCENTAGES: 
-    #             generate_on_subjects(["S1"], h36m_folder, coco_annotation, 
-    #                                  "person_keypoints_s1_{}sampling{}_{}.json".format(sampling, int(perc * 100), teacher), 
-    #                                  teacher=teacher, sampling=sampling, perc=perc, enable_continual=True)
+    #             generate_on_subjects(["S1", "S5", "S6", "S7", "S8"], h36m_folder, coco_annotation, 
+    #                                  "person_keypoints_trainh36m_{}sampling{}_{}.json".format(sampling, int(perc * 100), teacher), 
+    #                                  teacher=teacher, sampling=sampling, perc=perc)
+    #             generate_on_subjects(["S9", "S11"], h36m_folder, coco_annotation, 
+    #                                 "person_keypoints_valh36m_{}sampling{}_{}.json".format(sampling, int(perc * 100), teacher), 
+    #                                 teacher=teacher, sampling=sampling, perc=perc)
+                
+    generate_on_subjects(["S1"], h36m_folder, coco_annotation, "person_keypoints_s1_vicon.json", teacher="vicon", enable_continual=True)
+    generate_on_subjects(["S1"], h36m_folder, coco_annotation, "person_keypoints_s1_openpose1.json", teacher="openpose1", enable_continual=True)
+    generate_on_subjects(["S1"], h36m_folder, coco_annotation, "person_keypoints_s1_CPN.json", teacher="CPN", enable_continual=True)
+
+    for teacher in TEACHERS: 
+        for sampling in SAMPLINGS: 
+            for perc in PERCENTAGES: 
+                generate_on_subjects(["S1"], h36m_folder, coco_annotation, 
+                                     "person_keypoints_s1_{}sampling{}_{}.json".format(sampling, int(perc * 100), teacher), 
+                                     teacher=teacher, sampling=sampling, perc=perc, enable_continual=True)
 
 
 if __name__ == "__main__":
