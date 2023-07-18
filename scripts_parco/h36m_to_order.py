@@ -42,10 +42,11 @@ for sub in [ args.subject ]:#, 'S11']: #'S1','S5', 'S6', 'S7', 'S8']:#
 
     def process_action(data, other_data, action=None):
         if action is None:
-            files = glob.glob(os.path.join(base_path, '*' + camera + '*'))
+            files = sorted(glob.glob(os.path.join(base_path, '*' + camera + '*')))
         else:
             globData = '*' + action + "." + camera + '*'
-            files = glob.glob(os.path.join(base_path, globData))
+            files = sorted(glob.glob(os.path.join(base_path, globData)))
+        print(files)
 
         df_global_id = []
         df_frames = []
