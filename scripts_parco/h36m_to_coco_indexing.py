@@ -19,8 +19,9 @@ def main(order_file, index_folder, output_folder, subject, gt, teacher, camera):
         keypoints_out = keypoints[vicon_kp_names].tolist()
         kp_final = [0] * (5*3)
         for kp in range(0,len(keypoints_out),2):
-            kp_final.append(keypoints_out[kp])
+            # account for U/V inversion in names
             kp_final.append(keypoints_out[kp+1])
+            kp_final.append(keypoints_out[kp])
             kp_final.append(2)
         
         ret = {
@@ -96,13 +97,10 @@ def main(order_file, index_folder, output_folder, subject, gt, teacher, camera):
         try:
             filename_replaced = filename_replaced.replace('_','.')
             take = '.'.join(filename_replaced.split('/')[-1].split('_')[0].split('.')[0:-1])
-            print(take)
         except:
             take = '.'.join(filename_replaced.split('/')[-1].split('_')[0].split('.')[0:-1])
-            print(take)
         
         file = pd.read_csv(filename)
-        
         
         for i, r in file.iterrows(): 
             cam = take.split('.')[-1]

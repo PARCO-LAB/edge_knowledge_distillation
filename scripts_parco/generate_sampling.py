@@ -9,6 +9,9 @@ import math
 def random_sampling(start, end, chunk):
     return sorted(random.sample(range(start, end+1), chunk))
 
+def uniform_sampling(start, end, chunk):
+    return sorted(range(start, end+1, int((end-start)/chunk)))[0:chunk]
+
 def main():
     parser = argparse.ArgumentParser(description="Generate index for sampling", epilog="PARCO")
     parser.add_argument("--total-size",
@@ -20,6 +23,10 @@ def main():
     parser.add_argument("--chunk-size",
                         default=100,
                         type=int) 
+    parser.add_argument("--sampling",
+                        default="random",
+                        type=str,
+                        help="Type of sampling. Could be random or uniform") 
     parser.add_argument("--output-folder-train",
                         default='random') 
     parser.add_argument("--output-folder-test",
@@ -33,7 +40,12 @@ def main():
         window_start = train_id * args.window_size
         window_end = min(args.total_size, (train_id + 1) * args.window_size)
 
-        sampling = random_sampling(window_start, window_end, args.chunk_size)
+        if args.sampling == 'random':
+            sampling = random_sampling(window_start, window_end, args.chunk_size)
+        elif args.sampling == 'uniform':
+            sampling = uniform_sampling(window_start, window_end, args.chunk_size)
+        else:
+            raise Exception("Sampling unknow!")
         with open(args.output_folder_train + '/chunk-' + str(train_id).zfill(3) + '.txt', 'w') as f:
             for s in sampling:
                 f.write(str(s) + '\n')

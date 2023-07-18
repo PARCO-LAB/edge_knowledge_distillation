@@ -15,6 +15,7 @@ from coco import CocoDataset, CocoHumanPoseEval
 from models import MODELS
 import numpy as np
 import random
+import math
 
 SEED=213445
 torch.manual_seed(SEED)
@@ -87,8 +88,8 @@ def train(config_file):
     
     model = MODELS[config['model']['name']](**config['model']['kwargs']).to(device)
     
-    if "initial_state_dict_name" in config['model']:
-        path_weights = f"{checkpoint_dir}/{config['model']['initial_state_dict']}"
+    if "initial_state_dict_name" in config:
+        path_weights = f"{checkpoint_dir}/{config['initial_state_dict_name']}"
         print('Loading initial weights from fname %s' % path_weights)
         model.load_state_dict(torch.load(path_weights))
     elif "initial_state_dict" in config['model']:
@@ -120,7 +121,7 @@ def train(config_file):
         train_loss = 0.0
         model = model.train()
         for epoch in range(config["epochs"]):
-            for batch_i in range(int(train_chunk_size / config["batch_size"])):
+            for batch_i in range(math.ceil(train_chunk_size / config["batch_size"])):
                 image = image_train[batch_i*config["batch_size"]:(batch_i + 1)*config["batch_size"]].to(device)
                 cmap = cmap_train[batch_i*config["batch_size"]:(batch_i + 1)*config["batch_size"]].to(device)
                 paf = paf_train[batch_i*config["batch_size"]:(batch_i + 1)*config["batch_size"]].to(device)
@@ -146,7 +147,7 @@ def train(config_file):
 
                 train_loss += float(loss)
             
-            train_loss /= int(train_chunk_size / config["batch_size"])
+            train_loss /= math.ceil(train_chunk_size / config["batch_size"])
             
             write_log_entry(logfile_path, epoch, train_loss, lr, chunk_i)
 
@@ -169,5 +170,6 @@ if __name__ == '__main__':
         import glob
         # sorted for lexicographic ordering
         experiment_files = sorted(glob.glob(os.path.join(args.config, "*.json")))
+        print(experiment_files)
         for experiment in experiment_files:
             train(experiment)

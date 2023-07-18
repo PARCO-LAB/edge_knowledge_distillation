@@ -16,6 +16,8 @@ import pycocotools.coco
 import pycocotools.cocoeval
 import torchvision
 
+import cv2
+
 
         
 def coco_category_to_topology(coco_category):
@@ -66,7 +68,7 @@ def coco_annotations_to_tensors(coco_annotations,
 
             x = kps[c * 3]
             y = kps[c * 3 + 1]
-            visible = kps[c * 3 + 2]
+            visible = kps[c * 3 + 2] and not (np.isnan(x) or np.isnan(y))
 
             if visible:
                 peaks[c][counts[c]][0] = (float(y) + 0.5) / (IH + 1.0)
@@ -333,11 +335,14 @@ class CocoDataset(torch.utils.data.Dataset):
         return len(self.filenames)
 
     def __getitem__(self, idx):
-
         if self.is_bmp:
             filename = os.path.splitext(self.filenames[idx])[0] + '.bmp'
         else:
             filename = os.path.splitext(self.filenames[idx])[0] + '.{}'.format(self.image_extension)
+        
+        if self.custom_return:
+            image = cv2.imread(os.path.join(self.images_dir, filename))
+            return image, filename
 
         # print(filename)
         image = PIL.Image.open(os.path.join(self.images_dir, filename))
@@ -383,10 +388,7 @@ class CocoDataset(torch.utils.data.Dataset):
         if self.transforms is not None:
             image = self.transforms(image)
             
-        if self.custom_return:
-            return image, cmap[0], paf[0], torch.from_numpy(np.array(mask))[None, ...], filename, peaks
-        else:
-            return image, cmap[0], paf[0], torch.from_numpy(np.array(mask))[None, ...]
+        return image, cmap[0], paf[0], torch.from_numpy(np.array(mask))[None, ...]
 
     def get_part_type_counts(self):
         return torch.sum(self.counts, dim=0)

@@ -1,9 +1,9 @@
 {
     "trainable": true,
-    "checkpoint_dir": "/home/shared/nas/KnowledgeDistillation/continual/continual_random_30s_128_32_vicon",
+    "checkpoint_dir": "annotations",
     "final_state_dict_name": "chunk-000.pth",
     "train_dataset": {
-        "images_dir": "/home/shared/nas/KnowledgeDistillation/h36m",
+        "images_dir": "dataset",
         "annotations_file": "ANNOTATION_TRAIN",
         "category_name": "person",
         "image_shape": [
@@ -40,7 +40,7 @@
         "hue": 0.01
     },
     "test_dataset": {
-        "images_dir": "/home/shared/nas/KnowledgeDistillation/h36m",
+        "images_dir": "dataset",
         "annotations_file": "ANNOTATION_TEST",
         "category_name": "person",
         "image_shape": [
@@ -74,7 +74,7 @@
         "pin_memory": true
     },
     "test_loader": {
-        "batch_size": 1,
+        "batch_size": 4,
         "shuffle": false,
         "num_workers": 1,
         "pin_memory": true
@@ -87,7 +87,7 @@
             "upsample_channels": 256,
             "num_upsample": 3
         },
-        "initial_state_dict": "/home/shared/befine/edge_knowledge_distillation/submodule/lib_maeve_py/maeve/nn/trtpose/models/densenet121_baseline_att_256x256_B_epoch_160_parco.pth"
+        "initial_state_dict": "densenet121_baseline_att_256x256_B_epoch_160_parco.pth"
     },
     "optimizer": {
         "name": "Adam",
