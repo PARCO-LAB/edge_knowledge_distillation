@@ -13,7 +13,7 @@ random.seed(SEED)
 
 from error import calculate_svd, calculate_svd_reconstruction, h36m_kp_names
 
-TEACHERS = ["vicon", "openpose1", "CPN"]
+TEACHERS = ["vicon"]
 SAMPLINGS = ["fixedmean_confidence", "fixedconfidence", "fixedmpjpe", "mean_confidence", "confidence", "mpjpe", "uniform", "fixedrandom", "random", "action", "parco"]
 PERCENTAGES = [0.01, 0.05, 0.1, 0.2, 0.4]
 WINDOW = int(50 * 30)
@@ -50,7 +50,7 @@ def get_annotation(id, keypoints, image_id):
     for kp in range(0,len(keypoints_out),2):
         kp_final.append(keypoints_out[kp])
         kp_final.append(keypoints_out[kp+1])
-        kp_final.append(2)
+        kp_final.append(2 if (not np.isnan(keypoints_out[kp]) and not np.isnan(keypoints_out[kp+1])) else 0)
         
     ret = {
             "segmentation": [],

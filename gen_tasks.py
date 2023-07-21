@@ -121,11 +121,11 @@ def gen_inference(repo_folder, teachers, samplings, percentages, name):
     script += "SUBJECTS=(\n"
     script += "    \"S9\"\n"
     script += "    \"S11\"\n"
-    script += "    \"S1\"\n"
-    script += "    \"S5\"\n"
-    script += "    \"S6\"\n"
-    script += "    \"S7\"\n"
-    script += "    \"S8\"\n"
+    script += "    # \"S1\"\n"
+    script += "    # \"S5\"\n"
+    script += "    # \"S6\"\n"
+    script += "    # \"S7\"\n"
+    script += "    # \"S8\"\n"
     script += ")\n"
     script += "\n"
     script += "CAMERAS=(\n"
@@ -135,20 +135,20 @@ def gen_inference(repo_folder, teachers, samplings, percentages, name):
 
     template_run = ""
     template_run += "{0}() {{\n"
-    template_run += "    i=0\n"
     template_run += "    for cam in ${{CAMERAS[*]}}; do\n"
     template_run += "        for sub in ${{SUBJECTS[*]}}; do\n"
     template_run += "            echo \"CAMERA ${{cam}} - SUBJECT ${{sub}}\"\n"
+    template_run += "            i=0\n"
     template_run += "            mkdir -p /home/shared/nas/KnowledgeDistillation/h36m/${{sub}}/{0}/\n"
     template_run += "            for action in $(ls -d /home/shared/nas/KnowledgeDistillation/h36m/${{sub}}/${{cam}}/*/); do\n"
     template_run += "                echo ${{action}}\n"
     template_run += "                TESTS[${{i}}]=${{action}}\n"
     template_run += "                i=$(($i + 1))\n"
     template_run += "            done\n"
+    template_run += "            {1}python3 parcopose_from_folder.py -f ${{TESTS[*]}} -n {0} -o /home/shared/nas/KnowledgeDistillation/h36m/${{sub}}/{0}/\n"
+    template_run += "            unset TESTS\n"
     template_run += "        done\n"
     template_run += "    done\n"
-    template_run += "    {1}python3 parcopose_from_folder.py -f ${{action}} -n {0} -o /home/shared/nas/KnowledgeDistillation/h36m/${{sub}}/{0}/\n"
-    template_run += "    unset TESTS\n"
     template_run += "}}\n"
     template_run += "\n"
 
@@ -227,48 +227,48 @@ def main(repo_folder, data_folder):
     with open(os.path.join(human_pose_folder, REF_HUMAN_POSE)) as f:
         ref_human_pose_json = json.load(f)
 
-    tasks = []
-    continual_tasks = []
-    for teacher in TEACHERS:
-        save_task_info(
-            ref_task_json, initial_state_dict, images_dir, annotations_dir, tasks_dir, 
-            "person_keypoints_trainh36m_{}.json".format(teacher), 
-            "person_keypoints_valh36m_uniformsampling10_{}.json".format(teacher),
-            "h36m_{}_{}".format(teacher, REF_TASK))
-        save_continual_task_info(
-            ref_task_json, initial_state_dict, images_dir, annotations_dir, tasks_dir, 
-            "continualtrain_person_keypoints_{}_{}.json".format(CONTINUAL_LEARNING_SUBJECT.lower(), teacher), 
-            "continualtrain_person_keypoints_{}_{}.json".format(CONTINUAL_LEARNING_SUBJECT.lower(), teacher), 
-            "continualval_person_keypoints_{}_uniformsampling10_{}.json".format(CONTINUAL_LEARNING_SUBJECT.lower(), teacher), 
-            "continual_h36m_{}_{}".format(teacher, REF_TASK))
+    # tasks = []
+    # continual_tasks = []
+    # for teacher in TEACHERS:
+    #     save_task_info(
+    #         ref_task_json, initial_state_dict, images_dir, annotations_dir, tasks_dir, 
+    #         "person_keypoints_trainh36m_{}.json".format(teacher), 
+    #         "person_keypoints_valh36m_uniformsampling10_{}.json".format(teacher),
+    #         "h36m_{}_{}".format(teacher, REF_TASK))
+    #     save_continual_task_info(
+    #         ref_task_json, initial_state_dict, images_dir, annotations_dir, tasks_dir, 
+    #         "continualtrain_person_keypoints_{}_{}.json".format(CONTINUAL_LEARNING_SUBJECT.lower(), teacher), 
+    #         "continualtrain_person_keypoints_{}_{}.json".format(CONTINUAL_LEARNING_SUBJECT.lower(), teacher), 
+    #         "continualval_person_keypoints_{}_uniformsampling10_{}.json".format(CONTINUAL_LEARNING_SUBJECT.lower(), teacher), 
+    #         "continual_h36m_{}_{}".format(teacher, REF_TASK))
         
-        tasks.append(os.path.join(tasks_dir, "h36m_{}_{}".format(teacher, REF_TASK)))
-        continual_tasks.append(os.path.join(tasks_dir, "continual_h36m_{}_{}".format(teacher, REF_TASK)))
+    #     tasks.append(os.path.join(tasks_dir, "h36m_{}_{}".format(teacher, REF_TASK)))
+    #     continual_tasks.append(os.path.join(tasks_dir, "continual_h36m_{}_{}".format(teacher, REF_TASK)))
 
-        create_human_pose(ref_human_pose_json, human_pose_folder, "h36m_{}".format(teacher))
+    #     create_human_pose(ref_human_pose_json, human_pose_folder, "h36m_{}".format(teacher))
 
-    for teacher in TEACHERS: 
-        for sampling in SAMPLINGS: 
-            for perc in PERCENTAGES:
-                perc_str = "{}".format(int(perc * 100))
-                save_task_info(
-                    ref_task_json, initial_state_dict, images_dir, annotations_dir, tasks_dir, 
-                   "person_keypoints_trainh36m_{}sampling{}_{}.json".format(sampling, perc_str, teacher), 
-                   "person_keypoints_valh36m_uniformsampling10_{}.json".format(teacher), 
-                   "{}{}_h36m_{}_{}".format(sampling, perc_str, teacher, REF_TASK))
-                save_continual_task_info(
-                    ref_task_json, initial_state_dict, images_dir, annotations_dir, tasks_dir, 
-                   "continualtrain_person_keypoints_{}_{}sampling{}_{}.json".format(CONTINUAL_LEARNING_SUBJECT.lower(), sampling, perc_str, teacher), 
-                   "continualtrain_person_keypoints_{}_{}.json".format(CONTINUAL_LEARNING_SUBJECT.lower(), teacher), 
-                   "continualval_person_keypoints_{}_uniformsampling10_{}.json".format(CONTINUAL_LEARNING_SUBJECT.lower(), teacher), 
-                   "continual_{}{}_h36m_{}_{}".format(sampling, perc_str, teacher, REF_TASK), perc)
-                tasks.append(os.path.join(tasks_dir, "{}{}_h36m_{}_{}".format(sampling, perc_str, teacher, REF_TASK)))
-                continual_tasks.append(os.path.join(tasks_dir, "continual_{}{}_h36m_{}_{}".format(sampling, perc_str, teacher, REF_TASK)))
+    # for teacher in TEACHERS: 
+    #     for sampling in SAMPLINGS: 
+    #         for perc in PERCENTAGES:
+    #             perc_str = "{}".format(int(perc * 100))
+    #             save_task_info(
+    #                 ref_task_json, initial_state_dict, images_dir, annotations_dir, tasks_dir, 
+    #                "person_keypoints_trainh36m_{}sampling{}_{}.json".format(sampling, perc_str, teacher), 
+    #                "person_keypoints_valh36m_uniformsampling10_{}.json".format(teacher), 
+    #                "{}{}_h36m_{}_{}".format(sampling, perc_str, teacher, REF_TASK))
+    #             save_continual_task_info(
+    #                 ref_task_json, initial_state_dict, images_dir, annotations_dir, tasks_dir, 
+    #                "continualtrain_person_keypoints_{}_{}sampling{}_{}.json".format(CONTINUAL_LEARNING_SUBJECT.lower(), sampling, perc_str, teacher), 
+    #                "continualtrain_person_keypoints_{}_{}.json".format(CONTINUAL_LEARNING_SUBJECT.lower(), teacher), 
+    #                "continualval_person_keypoints_{}_uniformsampling10_{}.json".format(CONTINUAL_LEARNING_SUBJECT.lower(), teacher), 
+    #                "continual_{}{}_h36m_{}_{}".format(sampling, perc_str, teacher, REF_TASK), perc)
+    #             tasks.append(os.path.join(tasks_dir, "{}{}_h36m_{}_{}".format(sampling, perc_str, teacher, REF_TASK)))
+    #             continual_tasks.append(os.path.join(tasks_dir, "continual_{}{}_h36m_{}_{}".format(sampling, perc_str, teacher, REF_TASK)))
 
-                create_human_pose(ref_human_pose_json, human_pose_folder, "h36m_{}sampling{}_{}".format(sampling, perc_str, teacher))
+    #             create_human_pose(ref_human_pose_json, human_pose_folder, "h36m_{}sampling{}_{}".format(sampling, perc_str, teacher))
     
-    gen_bash_script(tasks, os.path.join(repo_folder, "trt_pose", "run_train.bash"), is_continual=False)
-    gen_bash_script(continual_tasks, os.path.join(repo_folder, "trt_pose", "run_train_continual.bash"), is_continual=True)
+    # gen_bash_script(tasks, os.path.join(repo_folder, "trt_pose", "run_train.bash"), is_continual=False)
+    # gen_bash_script(continual_tasks, os.path.join(repo_folder, "trt_pose", "run_train_continual.bash"), is_continual=True)
 
     percentages_string = ["{}".format(int(perc * 100)) for perc in PERCENTAGES]
     for sampling in SAMPLINGS: 

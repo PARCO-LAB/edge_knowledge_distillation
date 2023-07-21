@@ -139,6 +139,8 @@ python3 error.py -f /home/shared/nas/KnowledgeDistillation/h36m/ -r vicon -s par
 
 python3 error.py -f /home/shared/nas/KnowledgeDistillation/h36m/ -r vicon -s openpose1 CPN parco parco_h36m_vicon 
 
+python3 error.py -f /home/shared/nas/KnowledgeDistillation/h36m/ -r vicon -s openpose1 CPN parco parco_h36m_vicon 
+
 
 # CONTINUAL ACTIONVAL 
 python3.9 continual_actionval_analysis.py -c ./trt_pose/tasks/human_pose/experiments/continual_h36m_vicon_nohead_densenet121_baseline_att_256x256_B.json ./trt_pose/tasks/human_pose/experiments/continual_parco10_h36m_vicon_nohead_densenet121_baseline_att_256x256_B.json -b ./trt_pose/tasks/human_pose/experiments/continual_h36m_vicon_nohead_densenet121_baseline_att_256x256_B.json
