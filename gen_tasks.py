@@ -188,6 +188,16 @@ def copy_checkpoints(teachers, samplings, percentages, tasks_dir, data_folder, h
     model_prefix = os.path.splitext(INITIAL_MODEL)[0]
 
     for teacher in teachers: 
+        task = "h36m_{}_{}".format(teacher, REF_TASK)
+        task_dir = os.path.join(tasks_dir, "{}.checkpoints".format(task))
+        model_file = os.path.join(task_dir, "epoch_0.pth")
+
+        target_model_name = "{}_h36m_{}.pth".format(model_prefix, teacher)
+        target_model_path = os.path.join(model_dir, target_model_name)
+
+        if os.path.exists(model_file):
+            shutil.copy(model_file, target_model_path)
+
         for sampling in samplings: 
             for perc in percentages:
                 perc_str = "{}".format(int(perc * 100))
