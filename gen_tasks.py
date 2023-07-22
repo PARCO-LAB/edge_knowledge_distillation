@@ -114,7 +114,7 @@ def create_human_pose(human_pose_json, human_pose_folder, name):
         f.write(json_data)
 
 
-def gen_inference(repo_folder, teachers, samplings, percentages, name):
+def gen_inference(repo_folder, data_folder, teachers, samplings, percentages, name):
     script_folder = os.path.join(repo_folder, "scripts")
     script  = "#!/bin/bash\n"
     script += "\n"
@@ -139,13 +139,13 @@ def gen_inference(repo_folder, teachers, samplings, percentages, name):
     template_run += "        for sub in ${{SUBJECTS[*]}}; do\n"
     template_run += "            echo \"CAMERA ${{cam}} - SUBJECT ${{sub}}\"\n"
     template_run += "            i=0\n"
-    template_run += "            mkdir -p /home/shared/nas/KnowledgeDistillation/h36m/${{sub}}/{0}/\n"
-    template_run += "            for action in $(ls -d /home/shared/nas/KnowledgeDistillation/h36m/${{sub}}/${{cam}}/*/); do\n"
+    template_run += "            mkdir -p {2}/h36m/${{sub}}/{0}/\n"
+    template_run += "            for action in $(ls -d {2}/h36m/${{sub}}/${{cam}}/*/); do\n"
     template_run += "                echo ${{action}}\n"
     template_run += "                TESTS[${{i}}]=${{action}}\n"
     template_run += "                i=$(($i + 1))\n"
     template_run += "            done\n"
-    template_run += "            {1}python3 parcopose_from_folder.py -f ${{TESTS[*]}} -n {0} -o /home/shared/nas/KnowledgeDistillation/h36m/${{sub}}/{0}/\n"
+    template_run += "            {1}python3 parcopose_from_folder.py -f ${{TESTS[*]}} -n {0} -o {2}/h36m/${{sub}}/{0}/\n"
     template_run += "            unset TESTS\n"
     template_run += "        done\n"
     template_run += "    done\n"
@@ -155,13 +155,13 @@ def gen_inference(repo_folder, teachers, samplings, percentages, name):
 
     if type(teachers) is str:
         if teachers == "openpose" or teachers == "openpose1":
-            script += template_run.format(teachers, "DNN=openpose ")
+            script += template_run.format(teachers, "DNN=openpose ", data_folder)
         else: 
-            script += template_run.format(teachers, "")
+            script += template_run.format(teachers, "", data_folder)
         script += "{}\n".format(teachers)
     elif samplings is None or percentages is None: 
         for teacher in teachers: 
-            script += template_run.format("parco_h36m_{}".format(teacher), "")
+            script += template_run.format("parco_h36m_{}".format(teacher), "", data_folder)
         
         for teacher in teachers: 
             script += "parco_h36m_{}\n".format(teacher)
@@ -170,7 +170,7 @@ def gen_inference(repo_folder, teachers, samplings, percentages, name):
         for teacher in teachers: 
             for sampling in samplings: 
                 for perc in percentages:
-                    script += template_run.format("parco_h36m_{}sampling{}_{}".format(sampling, perc, teacher), "")
+                    script += template_run.format("parco_h36m_{}sampling{}_{}".format(sampling, perc, teacher), "", data_folder)
         
         for teacher in teachers: 
             for sampling in samplings: 
@@ -272,11 +272,11 @@ def main(repo_folder, data_folder):
 
     percentages_string = ["{}".format(int(perc * 100)) for perc in PERCENTAGES]
     for sampling in SAMPLINGS: 
-        gen_inference(repo_folder, TEACHERS, [sampling], percentages_string, "run_parcopose_h36m_{}sampling.bash".format(sampling))
-    gen_inference(repo_folder, TEACHERS, None, None, "run_parcopose_h36m.bash")
-    gen_inference(repo_folder, "trtpose", None, None, "run_trtpose.bash")
-    gen_inference(repo_folder, "openpose1", None, None, "run_openpose.bash")
-    gen_inference(repo_folder, "parco", None, None, "run_parcopose.bash")
+        gen_inference(repo_folder, data_folder, TEACHERS, [sampling], percentages_string, "run_parcopose_h36m_{}sampling.bash".format(sampling))
+    gen_inference(repo_folder, data_folder, TEACHERS, None, None, "run_parcopose_h36m.bash")
+    gen_inference(repo_folder, data_folder, "trtpose", None, None, "run_trtpose.bash")
+    gen_inference(repo_folder, data_folder, "openpose1", None, None, "run_openpose.bash")
+    gen_inference(repo_folder, data_folder, "parco", None, None, "run_parcopose.bash")
 
     copy_checkpoints(TEACHERS, SAMPLINGS, PERCENTAGES, tasks_dir, data_folder, human_pose_folder)
     
