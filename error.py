@@ -10,6 +10,7 @@ from scipy.linalg import svd
 import seaborn as sns
 sns.set()
 import matplotlib.pyplot as plt
+import matplotlib.text as text
 
 h36m_kp_names = [
     "LShoulder:U", "LShoulder:V", "RShoulder:U", "RShoulder:V",
@@ -21,7 +22,7 @@ h36m_kp_names = [
 ]
 h36m_kps = list(dict.fromkeys(([kp.split(":")[0] for kp in h36m_kp_names])))
 
-FORMAT = "jpg"
+FORMAT = "pdf"
 
 def first_derivative(df: pd.DataFrame, cols_from, cols_to):
     t_delta = (df["time"] - df["time"].shift(1, fill_value=0).reset_index(drop=True))
@@ -265,6 +266,23 @@ def main_h36m(folder, s1, s2):
 
 
 def plot(s1, s2_list):
+
+    def edit_barplot(curr_ax):
+        for i, ytick in enumerate(curr_ax.get_yticklabels()):
+            ytick = ytick.get_text()
+            model = ytick
+            model = model.replace("parco_h36m_", "")
+            model = model.replace("sampling", " ")
+            model = model.replace("_vicon", "% (vicon)")
+            if ytick == "parco_h36m_vicon":
+                model = "no-sampling (vicon)"
+            curr_ax.text(0, i, "{}".format(model), 
+                       color='black', va='center')
+            curr_ax.text(data_plot.loc[data_plot["model"] == ytick, "MPJPE"].mean(), i - 0.1, 
+                       "{:.2f}".format(data_plot.loc[data_plot["model"] == ytick, "MPJPE"].mean()), 
+                       color='black')
+        curr_ax.set_yticklabels(["" for l in curr_ax.get_yticklabels()])
+
     for t_sub in ["test"]:
         data_plot = {
             "model": [], 
@@ -280,12 +298,11 @@ def plot(s1, s2_list):
         
         plot_name = "error_barplot_{}_{}.{}".format(s1, t_sub, FORMAT)
         print(" - {}".format(plot_name))
-        fig, ax = plt.subplots(2, 1, figsize=(14, 20))
-        sns.barplot(data=data_plot, x="model", y="MPJPE", ax=ax[0])
-        ax[0].set_xticklabels(ax[0].get_xticklabels(), rotation=30, fontsize=7)
-        ax[0].set_ylim(0, 12)
-        sns.barplot(data=data_plot, x="model", y="mAP", ax=ax[1])
-        ax[1].set_xticklabels(ax[1].get_xticklabels(), rotation=30, fontsize=7)
+        fig, ax = plt.subplots(2, 1, figsize=(7, 30))
+        sns.barplot(data=data_plot, x="MPJPE", y="model", ax=ax[0])
+        edit_barplot(ax[0])
+        sns.barplot(data=data_plot, x="mAP", y="model", ax=ax[1])
+        edit_barplot(ax[1])
         fig.savefig(plot_name)
         plt.close()
 
@@ -337,6 +354,25 @@ def plot(s1, s2_list):
         ax[1].set_xticklabels(ax[1].get_xticklabels(), rotation=30, fontsize=7)
         fig.savefig(plot_name)
         plt.close()
+
+def save_results(s1, s2_list):
+    for t_sub in ["test"]:
+        data_csv = {
+            "model": [], 
+            "MPJPE": [], 
+            "mAP": [], 
+        }
+        for s2 in s2_list: 
+            df = pd.read_csv("error_{}_{}_{}h36m.csv".format(s1, s2, t_sub), index_col=0)
+            data_csv["model"].extend([s2] * len(df.index))
+            data_csv["MPJPE"].extend(df["MPJPE"])
+            data_csv["mAP"].extend(df["mAP"])
+        data_csv = pd.DataFrame(data_csv)
+        data_csv = data_csv.groupby("model").mean()
+        
+        file_name = "error_barplot_{}_{}.csv".format(s1, t_sub)
+        data_csv.to_csv(file_name)
+        print(" - {}".format(file_name))
 
 
 def plot_svd_h36m(folder, s1, s2_list, num_eigen_vector=30, batch_size=None, data_type="pos"):
@@ -515,6 +551,9 @@ def main(folder, s1, s2_list, data_type):
 
     print("Plot general")
     plot(s1, s2_list)
+
+    print("Save general")
+    save_results(s1, s2_list)
 
 
 if __name__ == "__main__":

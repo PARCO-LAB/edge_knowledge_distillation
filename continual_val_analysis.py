@@ -7,6 +7,7 @@ import seaborn as sns
 import matplotlib.pyplot as plt
 from scipy.interpolate import interp1d
 import numpy as np
+import pprint
 
 
 def compute_checkpoint(checkpoint_fp, prefix, train=True):
@@ -58,6 +59,7 @@ def main(checkpoints, baselines, test_name=None):
         checkpoint_name = "Continual Learning ({})".format("_".join(os.path.basename(checkpoint_fp).split("_")[1:-6]))
         print("Compute {}".format(checkpoint_name))
         data[checkpoint_name] = compute_checkpoint(checkpoint_fp, "resval_dist")
+        data[checkpoint_name]  = data[checkpoint_name].loc[data[checkpoint_name]["action"] != "Directions1"]
         scatter[checkpoint_name] = {"color": "orange", "marker": "D", "s": 50} if c_i == 0 else {"color": "red", "marker": "D", "s": 60}
 
     # Baseline preprocessing
@@ -67,6 +69,7 @@ def main(checkpoints, baselines, test_name=None):
             checkpoint_name = "Baseline ({})".format("_".join(os.path.basename(baseline_fp).split("_")[1:-6]))
             print("Compute {}".format(checkpoint_name))
             data[checkpoint_name] = compute_checkpoint(baseline_fp, "resval_base_dist", train=False)
+            data[checkpoint_name]  = data[checkpoint_name].loc[data[checkpoint_name]["action"] != "Directions1"]
             if core_baseline is None:
                 core_baseline = data[checkpoint_name]
             scatter[checkpoint_name] = {"color": "orange", "marker": "D", "s": 50} 
@@ -80,6 +83,8 @@ def main(checkpoints, baselines, test_name=None):
         df_data = pd.concat([df_data, data[name]], axis=0).reset_index(drop=True)
 
     df_data = time_coherency(df_data)
+
+    pprint.pprint(df_data.loc[(df_data["frames"] == 967) & (df_data["action"] == "Directions")].to_dict())
     
     for baseline_fp in baselines:
         if os.path.splitext(baseline_fp)[1] == ".csv":

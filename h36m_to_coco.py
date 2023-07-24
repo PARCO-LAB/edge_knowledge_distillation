@@ -13,12 +13,13 @@ random.seed(SEED)
 
 from error import calculate_svd, calculate_svd_reconstruction, h36m_kp_names
 
-TEACHERS = ["vicon"]
-SAMPLINGS = ["fixedmean_confidence", "fixedconfidence", "fixedmpjpe", "mean_confidence", "confidence", "mpjpe", "uniform", "fixedrandom", "random", "action", "parco"]
+TEACHERS = ["vicon", "openpose1", "CPN"]
+# SAMPLINGS = ["fixedmax_confidence", "fixedmean_confidence", "fixedconfidence", "fixedmpjpe", "mean_confidence", "max_confidence", "confidence", "mpjpe", "uniform", "fixedrandom", "random", "action", "parco"]
+SAMPLINGS = ["fixedmax_confidence", "max_confidence"]
 PERCENTAGES = [0.01, 0.05, 0.1, 0.2, 0.4]
 WINDOW = int(50 * 30)
 
-IMAGE_ID_LIMIT = None
+IMAGE_ID_LIMIT = 700
 CONTINUAL_TRAIN_PERC = 0.8
 W, H = 1000, 1000
 
@@ -563,6 +564,62 @@ def fixedmean_confidence_keyframe_sampling(files, w_perc):
     return ret
 
 
+def max_confidence_keyframe_sampling(files, num_samples):
+    ret = {}
+    all_actions_df = pd.DataFrame()
+    for fp in files: 
+        df = pd.read_csv(fp).iloc[:IMAGE_ID_LIMIT]
+        fp = fp.replace(" ", "")
+        df_acc = df.filter(like='ACC')
+        max_val = df_acc.max(axis=1)
+        df["maxACC"] = max_val
+        df["fp"] = fp
+        all_actions_df = pd.concat([all_actions_df, df], axis=0)
+    
+    all_actions_df = all_actions_df.sort_values("maxACC", ascending=True)
+    top_N_rows = all_actions_df.head(num_samples)
+    for fp in files: 
+        row_indices = list(top_N_rows[top_N_rows["fp"] == fp].index)
+        row_indices.sort()
+        ret[fp] = list(row_indices)
+        print("{}: key-frame amount {}{:20}".format(fp, len(ret[fp]), " "))
+
+    return ret
+
+
+
+def fixedmax_confidence_keyframe_sampling(files, w_perc):
+    ret = {}
+    
+    all_actions_df = pd.DataFrame()
+    for fp in files: 
+        ret[fp] = []
+        df = pd.read_csv(fp).iloc[:IMAGE_ID_LIMIT]
+        fp = fp.replace(" ", "")
+        df_acc = df.filter(like='ACC')
+        max_val = df_acc.max(axis=1)
+        df["maxACC"] = max_val
+        df["fp"] = fp
+        all_actions_df = pd.concat([all_actions_df, df], axis=0)
+    
+    for w_i in range(math.ceil(len(all_actions_df.index) / WINDOW)):
+        start_w = w_i*WINDOW
+        end_w = min((w_i+1)*WINDOW, len(all_actions_df.index))
+        window_size = end_w - start_w
+        num_samples_for_window = int(w_perc * window_size)
+        curr_window = all_actions_df.iloc[start_w:end_w]
+        curr_window_sampling = curr_window.sort_values("maxACC", ascending=True).head(num_samples_for_window)
+        print("{}: fixed key-frame amount {} (window_size: {}) {:20}".format(w_i, len(curr_window_sampling.index), end_w-start_w, " "))
+        for i, e in curr_window_sampling.iterrows(): 
+            ret[e["fp"]].append(i)
+
+    for fp in files: 
+        ret[fp] = sorted(ret[fp])
+        print("{}: key-frame amount {}{:20}".format(fp, len(ret[fp]), " "))
+
+    return ret
+
+
 def get_keyframes(subjects, h36m_folder, sampling, perc, starting_model="trtpose_PARCO", teacher="vicon"):
     if sampling is None or perc is None: 
         return None
@@ -595,12 +652,16 @@ def get_keyframes(subjects, h36m_folder, sampling, perc, starting_model="trtpose
                 cam_sub_keyframes = confidence_keyframe_sampling(files, num_samples)
             elif sampling == "mean_confidence":
                 cam_sub_keyframes = mean_confidence_keyframe_sampling(files, num_samples)
+            elif sampling == "max_confidence":
+                cam_sub_keyframes = max_confidence_keyframe_sampling(files, num_samples)
             elif sampling == "fixedmpjpe":
                 cam_sub_keyframes = fixedmpjpe_keyframe_sampling(files, perc, teacher)
             elif sampling == "fixedconfidence":
                 cam_sub_keyframes = fixedconfidence_keyframe_sampling(files, perc)
             elif sampling == "fixedmean_confidence":
                 cam_sub_keyframes = fixedmean_confidence_keyframe_sampling(files, perc)
+            elif sampling == "fixedmax_confidence":
+                cam_sub_keyframes = fixedmax_confidence_keyframe_sampling(files, perc)
             else: 
                 print("Error: sampling {} not recognized".format(sampling))
                 exit()
@@ -767,12 +828,12 @@ def main(h36m_folder, coco_annotation):
     # generate_on_subjects(["S9"], h36m_folder, coco_annotation, "person_keypoints_valh36m_vicon.json", teacher="vicon")
     # generate_on_subjects(["S9"], h36m_folder, coco_annotation, "person_keypoints_valh36m_openpose1.json", teacher="openpose1")
 
-    generate_on_subjects(["S1", "S5", "S6", "S7", "S8"], h36m_folder, coco_annotation, "person_keypoints_trainh36m_vicon.json", teacher="vicon")
-    generate_on_subjects(["S1", "S5", "S6", "S7", "S8"], h36m_folder, coco_annotation, "person_keypoints_trainh36m_openpose1.json", teacher="openpose1")
-    generate_on_subjects(["S1", "S5", "S6", "S7", "S8"], h36m_folder, coco_annotation, "person_keypoints_trainh36m_CPN.json", teacher="CPN")
-    generate_on_subjects(["S9", "S11"], h36m_folder, coco_annotation, "person_keypoints_valh36m_vicon.json", teacher="vicon")
-    generate_on_subjects(["S9", "S11"], h36m_folder, coco_annotation, "person_keypoints_valh36m_openpose1.json", teacher="openpose1")
-    generate_on_subjects(["S9", "S11"], h36m_folder, coco_annotation, "person_keypoints_valh36m_CPN.json", teacher="CPN")
+    # generate_on_subjects(["S1", "S5", "S6", "S7", "S8"], h36m_folder, coco_annotation, "person_keypoints_trainh36m_vicon.json", teacher="vicon")
+    # generate_on_subjects(["S1", "S5", "S6", "S7", "S8"], h36m_folder, coco_annotation, "person_keypoints_trainh36m_openpose1.json", teacher="openpose1")
+    # generate_on_subjects(["S1", "S5", "S6", "S7", "S8"], h36m_folder, coco_annotation, "person_keypoints_trainh36m_CPN.json", teacher="CPN")
+    # generate_on_subjects(["S9", "S11"], h36m_folder, coco_annotation, "person_keypoints_valh36m_vicon.json", teacher="vicon")
+    # generate_on_subjects(["S9", "S11"], h36m_folder, coco_annotation, "person_keypoints_valh36m_openpose1.json", teacher="openpose1")
+    # generate_on_subjects(["S9", "S11"], h36m_folder, coco_annotation, "person_keypoints_valh36m_CPN.json", teacher="CPN")
     for teacher in TEACHERS: 
         for sampling in SAMPLINGS: 
             for perc in PERCENTAGES: 
@@ -783,16 +844,16 @@ def main(h36m_folder, coco_annotation):
                                     "person_keypoints_valh36m_{}sampling{}_{}.json".format(sampling, int(perc * 100), teacher), 
                                     teacher=teacher, sampling=sampling, perc=perc)
                 
-    generate_on_subjects(["S1"], h36m_folder, coco_annotation, "person_keypoints_s1_vicon.json", teacher="vicon", enable_continual=True)
-    generate_on_subjects(["S1"], h36m_folder, coco_annotation, "person_keypoints_s1_openpose1.json", teacher="openpose1", enable_continual=True)
-    generate_on_subjects(["S1"], h36m_folder, coco_annotation, "person_keypoints_s1_CPN.json", teacher="CPN", enable_continual=True)
+    # generate_on_subjects(["S1"], h36m_folder, coco_annotation, "person_keypoints_s1_vicon.json", teacher="vicon", enable_continual=True)
+    # generate_on_subjects(["S1"], h36m_folder, coco_annotation, "person_keypoints_s1_openpose1.json", teacher="openpose1", enable_continual=True)
+    # generate_on_subjects(["S1"], h36m_folder, coco_annotation, "person_keypoints_s1_CPN.json", teacher="CPN", enable_continual=True)
 
-    for teacher in TEACHERS: 
-        for sampling in SAMPLINGS: 
-            for perc in PERCENTAGES: 
-                generate_on_subjects(["S1"], h36m_folder, coco_annotation, 
-                                     "person_keypoints_s1_{}sampling{}_{}.json".format(sampling, int(perc * 100), teacher), 
-                                     teacher=teacher, sampling=sampling, perc=perc, enable_continual=True)
+    # for teacher in TEACHERS: 
+    #     for sampling in SAMPLINGS: 
+    #         for perc in PERCENTAGES: 
+    #             generate_on_subjects(["S1"], h36m_folder, coco_annotation, 
+    #                                  "person_keypoints_s1_{}sampling{}_{}.json".format(sampling, int(perc * 100), teacher), 
+    #                                  teacher=teacher, sampling=sampling, perc=perc, enable_continual=True)
 
 
 if __name__ == "__main__":
