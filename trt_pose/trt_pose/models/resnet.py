@@ -1,7 +1,7 @@
 import torch
 import torchvision
 from .common import *
-
+from torchvision.models.resnet import ResNet18_Weights, ResNet34_Weights, ResNet50_Weights, ResNet101_Weights, ResNet152_Weights
 
 class ResNetBackbone(torch.nn.Module):
     
@@ -32,28 +32,28 @@ def _resnet_pose(cmap_channels, paf_channels, upsample_channels, resnet, feature
     return model
     
     
-def resnet18_baseline(cmap_channels, paf_channels, upsample_channels=256, pretrained=True, num_upsample=3, num_flat=0):
-    resnet = torchvision.models.resnet18(pretrained=pretrained)
+def resnet18_baseline(cmap_channels, paf_channels, upsample_channels=256, weights=ResNet18_Weights, num_upsample=3, num_flat=0):
+    resnet = torchvision.models.resnet18(weights=ResNet18_Weights)
     return _resnet_pose(cmap_channels, paf_channels, upsample_channels, resnet, 512, num_upsample, num_flat)
 
 
-def resnet34_baseline(cmap_channels, paf_channels, upsample_channels=256, pretrained=True, num_upsample=3, num_flat=0):
-    resnet = torchvision.models.resnet34(pretrained=pretrained)
+def resnet34_baseline(cmap_channels, paf_channels, upsample_channels=256, weights=ResNet34_Weights, num_upsample=3, num_flat=0):
+    resnet = torchvision.models.resnet34(weights=weights)
     return _resnet_pose(cmap_channels, paf_channels, upsample_channels, resnet, 512, num_upsample, num_flat)
 
 
-def resnet50_baseline(cmap_channels, paf_channels, upsample_channels=256, pretrained=True, num_upsample=3, num_flat=0):
-    resnet = torchvision.models.resnet50(pretrained=pretrained)
+def resnet50_baseline(cmap_channels, paf_channels, upsample_channels=256, weights=ResNet50_Weights, num_upsample=3, num_flat=0):
+    resnet = torchvision.models.resnet50(weights=weights)
     return _resnet_pose(cmap_channels, paf_channels, upsample_channels, resnet, 2048, num_upsample, num_flat)
 
 
-def resnet101_baseline(cmap_channels, paf_channels, upsample_channels=256, pretrained=True, num_upsample=3, num_flat=0):
-    resnet = torchvision.models.resnet101(pretrained=pretrained)
+def resnet101_baseline(cmap_channels, paf_channels, upsample_channels=256, weights=ResNet101_Weights, num_upsample=3, num_flat=0):
+    resnet = torchvision.models.resnet101(weights=weights)
     return _resnet_pose(cmap_channels, paf_channels, upsample_channels, resnet, 2048, num_upsample, num_flat)
 
 
-def resnet152_baseline(cmap_channels, paf_channels, upsample_channels=256, pretrained=True, num_upsample=3, num_flat=0):
-    resnet = torchvision.models.resnet152(pretrained=pretrained)
+def resnet152_baseline(cmap_channels, paf_channels, upsample_channels=256, weights=ResNet152_Weights, num_upsample=3, num_flat=0):
+    resnet = torchvision.models.resnet152(weights=weights)
     return _resnet_pose(cmap_channels, paf_channels, upsample_channels, resnet, 2048, num_upsample, num_flat)
 
 
@@ -73,26 +73,26 @@ def _resnet_pose_att(cmap_channels, paf_channels, upsample_channels, resnet, fea
     return model
 
     
-def resnet18_baseline_att(cmap_channels, paf_channels, upsample_channels=256, pretrained=True, num_upsample=3, num_flat=0):
-    resnet = torchvision.models.resnet18(pretrained=pretrained)
+def resnet18_baseline_att(cmap_channels, paf_channels, upsample_channels=256, weights=ResNet18_Weights, num_upsample=3, num_flat=0):
+    resnet = torchvision.models.resnet18(weights=weights)
     return _resnet_pose_att(cmap_channels, paf_channels, upsample_channels, resnet, 512, num_upsample, num_flat)
 
 
-def resnet34_baseline_att(cmap_channels, paf_channels, upsample_channels=256, pretrained=True, num_upsample=3, num_flat=0):
-    resnet = torchvision.models.resnet34(pretrained=pretrained)
+def resnet34_baseline_att(cmap_channels, paf_channels, upsample_channels=256, weights=ResNet34_Weights, num_upsample=3, num_flat=0):
+    resnet = torchvision.models.resnet34(weights=weights)
     return _resnet_pose_att(cmap_channels, paf_channels, upsample_channels, resnet, 512, num_upsample, num_flat)
 
 
-def resnet50_baseline_att(cmap_channels, paf_channels, upsample_channels=256, pretrained=True, num_upsample=3, num_flat=0):
-    resnet = torchvision.models.resnet50(pretrained=pretrained)
+def resnet50_baseline_att(cmap_channels, paf_channels, upsample_channels=256, weights=ResNet50_Weights, num_upsample=3, num_flat=0):
+    resnet = torchvision.models.resnet50(weights=weights)
     return _resnet_pose_att(cmap_channels, paf_channels, upsample_channels, resnet, 2048, num_upsample, num_flat)
 
 
-def resnet101_baseline_att(cmap_channels, paf_channels, upsample_channels=256, pretrained=True, num_upsample=3, num_flat=0):
-    resnet = torchvision.models.resnet101(pretrained=pretrained)
+def resnet101_baseline_att(cmap_channels, paf_channels, upsample_channels=256, weights=ResNet101_Weights, num_upsample=3, num_flat=0):
+    resnet = torchvision.models.resnet101(weights=weights)
     return _resnet_pose_att(cmap_channels, paf_channels, upsample_channels, resnet, 2048, num_upsample, num_flat)
 
 
-def resnet152_baseline_att(cmap_channels, paf_channels, upsample_channels=256, pretrained=True, num_upsample=3, num_flat=0):
-    resnet = torchvision.models.resnet152(pretrained=pretrained)
+def resnet152_baseline_att(cmap_channels, paf_channels, upsample_channels=256, weights=ResNet152_Weights, num_upsample=3, num_flat=0):
+    resnet = torchvision.models.resnet152(weights=weights)
     return _resnet_pose_att(cmap_channels, paf_channels, upsample_channels, resnet, 2048, num_upsample, num_flat)

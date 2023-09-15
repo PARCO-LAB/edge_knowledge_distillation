@@ -1,6 +1,7 @@
 import torch
 import torchvision
 from .common import *
+from torchvision.models.mnasnet import MNASNet0_5_Weights, MNASNet0_75_Weights, MNASNet1_0_Weights, MNASNet1_3_Weights
 
 
 class MnasnetBackbone(torch.nn.Module):
@@ -30,42 +31,42 @@ def _mnasnet_pose_att(cmap_channels, paf_channels, upsample_channels, backbone, 
     return model
 
 
-def mnasnet0_5_baseline(cmap_channels, paf_channels, upsample_channels=256, pretrained=True, num_upsample=3, num_flat=0):
-    backbone = torchvision.models.mnasnet0_5(pretrained=pretrained)
+def mnasnet0_5_baseline(cmap_channels, paf_channels, upsample_channels=256, weights=MNASNet0_5_Weights, num_upsample=3, num_flat=0):
+    backbone = torchvision.models.mnasnet0_5(weights=weights)
     return _mnasnet_pose(cmap_channels, paf_channels, upsample_channels, backbone, 1280, num_upsample, num_flat)
 
 
-def mnasnet0_75_baseline(cmap_channels, paf_channels, upsample_channels=256, pretrained=True, num_upsample=3, num_flat=0):
-    backbone = torchvision.models.mnasnet0_75(pretrained=pretrained)
+def mnasnet0_75_baseline(cmap_channels, paf_channels, upsample_channels=256, weights=MNASNet0_75_Weights, num_upsample=3, num_flat=0):
+    backbone = torchvision.models.mnasnet0_75(weights=weights)
     return _mnasnet_pose(cmap_channels, paf_channels, upsample_channels, backbone, 1280, num_upsample, num_flat)
 
 
-def mnasnet1_0_baseline(cmap_channels, paf_channels, upsample_channels=256, pretrained=True, num_upsample=3, num_flat=0):
-    backbone = torchvision.models.mnasnet1_0(pretrained=pretrained)
+def mnasnet1_0_baseline(cmap_channels, paf_channels, upsample_channels=256, weights=MNASNet1_0_Weights, num_upsample=3, num_flat=0):
+    backbone = torchvision.models.mnasnet1_0(weights=weights)
     return _mnasnet_pose(cmap_channels, paf_channels, upsample_channels, backbone, 1280, num_upsample, num_flat)
 
 
-def mnasnet1_3_baseline(cmap_channels, paf_channels, upsample_channels=256, pretrained=True, num_upsample=3, num_flat=0):
-    backbone = torchvision.models.mnasnet1_3(pretrained=pretrained)
+def mnasnet1_3_baseline(cmap_channels, paf_channels, upsample_channels=256, weights=MNASNet1_3_Weights, num_upsample=3, num_flat=0):
+    backbone = torchvision.models.mnasnet1_3(weights=weights)
     return _mnasnet_pose(cmap_channels, paf_channels, upsample_channels, backbone, 1280, num_upsample, num_flat)
 
 
 
-def mnasnet0_5_baseline_att(cmap_channels, paf_channels, upsample_channels=256, pretrained=True, num_upsample=3, num_flat=0):
-    backbone = torchvision.models.mnasnet0_5(pretrained=pretrained)
+def mnasnet0_5_baseline_att(cmap_channels, paf_channels, upsample_channels=256, weights=MNASNet0_5_Weights, num_upsample=3, num_flat=0):
+    backbone = torchvision.models.mnasnet0_5(weights=weights)
     return _mnasnet_pose_att(cmap_channels, paf_channels, upsample_channels, backbone, 1280, num_upsample, num_flat)
 
 
-def mnasnet0_75_baseline_att(cmap_channels, paf_channels, upsample_channels=256, pretrained=True, num_upsample=3, num_flat=0):
-    backbone = torchvision.models.mnasnet0_75(pretrained=pretrained)
+def mnasnet0_75_baseline_att(cmap_channels, paf_channels, upsample_channels=256, weights=MNASNet0_75_Weights, num_upsample=3, num_flat=0):
+    backbone = torchvision.models.mnasnet0_75(weights=weights)
     return _mnasnet_pose_att(cmap_channels, paf_channels, upsample_channels, backbone, 1280, num_upsample, num_flat)
 
 
-def mnasnet1_0_baseline_att(cmap_channels, paf_channels, upsample_channels=256, pretrained=True, num_upsample=3, num_flat=0):
-    backbone = torchvision.models.mnasnet1_0(pretrained=pretrained)
+def mnasnet1_0_baseline_att(cmap_channels, paf_channels, upsample_channels=256, weights=MNASNet1_0_Weights, num_upsample=3, num_flat=0):
+    backbone = torchvision.models.mnasnet1_0(weights=weights)
     return _mnasnet_pose_att(cmap_channels, paf_channels, upsample_channels, backbone, 1280, num_upsample, num_flat)
 
 
-def mnasnet1_3_baseline_att(cmap_channels, paf_channels, upsample_channels=256, pretrained=True, num_upsample=3, num_flat=0):
-    backbone = torchvision.models.mnasnet1_3(pretrained=pretrained)
+def mnasnet1_3_baseline_att(cmap_channels, paf_channels, upsample_channels=256, weights=MNASNet1_3_Weights, num_upsample=3, num_flat=0):
+    backbone = torchvision.models.mnasnet1_3(weights=weights)
     return _mnasnet_pose_att(cmap_channels, paf_channels, upsample_channels, backbone, 1280, num_upsample, num_flat)
