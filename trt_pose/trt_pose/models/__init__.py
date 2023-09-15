@@ -2,6 +2,7 @@ from .resnet import *
 from .densenet import *
 from .mnasnet import *
 # from .dla import *
+from .effnet import effnetv2_s_baseline 
 
 MODELS = {
     'resnet18_baseline': resnet18_baseline,
@@ -30,4 +31,5 @@ MODELS = {
     'mnasnet0_75_baseline_att': mnasnet0_75_baseline_att,
     'mnasnet1_0_baseline_att': mnasnet1_0_baseline_att,
     'mnasnet1_3_baseline_att': mnasnet1_3_baseline_att,
+    'effnetv2_s_baseline': effnetv2_s_baseline,
 }
