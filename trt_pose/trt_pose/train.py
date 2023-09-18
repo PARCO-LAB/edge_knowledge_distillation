@@ -1,6 +1,8 @@
 import argparse
 import subprocess
 import torch
+import torch.utils
+import torch.utils.data
 import torchvision
 import os
 import torch.optim
@@ -11,8 +13,8 @@ import time
 import json
 import pprint
 import torch.nn.functional as F
-from coco import CocoDataset, CocoHumanPoseEval
-from models import MODELS
+from .coco import CocoDataset, CocoHumanPoseEval
+from .models import MODELS
 import numpy as np
 import random
 
@@ -89,10 +91,10 @@ if __name__ == '__main__':
     train_dataset = CocoDataset(**train_dataset_kwargs)
     test_dataset = CocoDataset(**test_dataset_kwargs)
     
-    part_type_counts = test_dataset.get_part_type_counts().float().cuda()
+    part_type_counts = test_dataset.get_part_type_counts().float().to(device)
     part_weight = 1.0 / part_type_counts
     part_weight = part_weight / torch.sum(part_weight)
-    paf_type_counts = test_dataset.get_paf_type_counts().float().cuda()
+    paf_type_counts = test_dataset.get_paf_type_counts().float().to(device)
     paf_weight = 1.0 / paf_type_counts
     paf_weight = paf_weight / torch.sum(paf_weight)
     paf_weight /= 2.0
@@ -107,7 +109,7 @@ if __name__ == '__main__':
         **config["test_loader"]
     )
     
-    model = MODELS[config['model']['name']](**config['model']['kwargs']).to(device)
+    model: torch.nn.Module = MODELS[config['model']['name']](**config['model']['kwargs']).to(device)
     
     if "initial_state_dict" in config['model']:
         print('Loading initial weights from %s' % config['model']['initial_state_dict'])
@@ -169,7 +171,9 @@ if __name__ == '__main__':
           
             loss = cmap_mse + paf_mse
             
-            with amp.scale_loss(loss, optimizer) as scaled_loss:
+            # for unknown reason, this check statically fails but it works at runtime. Add the type ignore
+            # to avoid red mark on VSCode.
+            with amp.scale_loss(loss, optimizer) as scaled_loss: # type: ignore
                 scaled_loss.backward()
 
             i += train_batch_size
@@ -212,5 +216,5 @@ if __name__ == '__main__':
         scheduler.step(test_loss)
         
         
-        if 'evaluation' in config:
-            evaluator.evaluate(model, train_dataset.topology)
+        # if 'evaluation' in config:
+        #     evaluator.evaluate(model, train_dataset.topology)
