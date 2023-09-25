@@ -125,7 +125,7 @@ if __name__ == '__main__':
     else:
         mask_unlabeled = False
     lr = 0
-    prev_loss = 1000
+    prev_loss = np.inf
     for epoch in range(config["epochs"]):
         for param_group in optimizer.param_groups:
             lr = param_group['lr']
@@ -143,8 +143,6 @@ if __name__ == '__main__':
         
         if epoch % config['checkpoints']['interval'] == 0:
            save_checkpoint(model, checkpoint_dir, epoch)
-        
-           
         
         train_loss = 0.0
         model = model.train()

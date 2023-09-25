@@ -1,6 +1,6 @@
 import torch
+import torch.utils
 import torch.utils.data
-import torch.nn
 import os
 import PIL.Image
 import json
@@ -16,10 +16,10 @@ import pycocotools.coco
 import pycocotools.cocoeval
 import torchvision
 
+from typing import Tuple
+
 import cv2
 
-
-        
 def coco_category_to_topology(coco_category):
     """Gets topology tensor from a COCO category
     """
@@ -44,6 +44,8 @@ def coco_annotations_to_tensors(coco_annotations,
                                 image_shape,
                                 parts,
                                 topology,
+                                excluding_first_keypoints: int,
+                                is_confidence_available: bool,
                                 max_count=100):
     """Gets tensors corresponding to peak counts, peak coordinates, and peak to peak connections
     """
@@ -54,25 +56,35 @@ def coco_annotations_to_tensors(coco_annotations,
     IH = image_shape[0]
     IW = image_shape[1]
     counts = torch.zeros((C)).int()
-    peaks = torch.zeros((C, M, 2)).float()
+    peaks = torch.zeros((C, M, 3)).float()
     visibles = torch.zeros((len(annotations), C)).int()
     connections = -torch.ones((K, 2, M)).int()
 
     for ann_idx, ann in enumerate(annotations):
 
         kps = ann['keypoints']
-        kps = kps[5*3:]
+        kps = kps[excluding_first_keypoints*3:]
 
         # add visible peaks
         for c in range(C):
 
             x = kps[c * 3]
             y = kps[c * 3 + 1]
-            visible = kps[c * 3 + 2] and not (np.isnan(x) or np.isnan(y))
-
+            # by default, the point is surely not visible if there is a NaN
+            visible = (not np.isnan(x)) and (not np.isnan(y))
+            # confidence set to -1 by convention means "not available"
+            confidence = -1
+            if visible:
+                if is_confidence_available:
+                    confidence = kps[c * 3 + 2]
+                # for sure, x and y are bot valid numbers. Use the point only if
+                # the 3rd value is greater than 0 (i.e.: confidence or plain COCO)
+                visible = kps[c * 3 + 2] > 0
+            
             if visible:
                 peaks[c][counts[c]][0] = (float(y) + 0.5) / (IH + 1.0)
                 peaks[c][counts[c]][1] = (float(x) + 0.5) / (IW + 1.0)
+                peaks[c][counts[c]][2] = confidence
                 counts[c] = counts[c] + 1
                 visibles[ann_idx][c] = 1
 
@@ -189,8 +201,7 @@ def transform_peaks(counts, peaks, quad):
         newpeaks[c][0:count] = transform_points_xy(newpeaks[c][0:count][:, ::-1], quad)[:, ::-1]
     return torch.from_numpy(newpeaks)
 
-def fix_category_excluding_face(cat):
-    V_THR = 5
+def fix_category_excluding_face(cat, V_THR):
     cat["keypoints"] = cat["keypoints"][V_THR:]
     new_cat_skeleton = []
     for idx_pair in cat["skeleton"]:
@@ -204,12 +215,11 @@ def fix_category_excluding_face(cat):
 
 class CocoDataset(torch.utils.data.Dataset):
     def __init__(self,
-                 images_dir,
-                 annotations_file,
-                 category_name,
-                 image_shape,
+                 images_dir : str,
+                 annotations_file : str,
+                 category_name : str,
+                 image_shape : Tuple[int,int],
                  target_shape,
-                 is_bmp=False,
                  stdev=0.02,
                  use_crowd=False,
                  min_area=0.0,
@@ -218,14 +228,35 @@ class CocoDataset(torch.utils.data.Dataset):
                  random_angle=(0.0, 0.0),
                  random_scale=(1.0, 1.0),
                  random_translate=(0.0, 0.0),
+                 excluding_first_keypoints=5,
                  transforms=None,
                  keep_aspect_ratio=False,
-                 image_extension="jpg",
-                 custom_return=False):
+                 is_confidence_available=False,
+                 order_file=None):
+        """Base class file for reading the dataset in COCO format.
+
+            - images_dir: root directory for image searching
+            - annotations_file: the file with the annotations
+            - category_name: category to consider from the annotations
+            - image_shape: source image shape
+            - target_shape: target image shape
+            - stdev: the target stdev for CMAP generation
+            - use_crowd: check if has to include crowd
+            - min_area: minimum area of person to include in the annotation
+            - max_area: maximum area of person to include in the annotation
+            - max_part_count: it should be maximum concurrent people to detect
+            - random_angle: min/max angle for data augmentation
+            - random_scale: min/max scale for data augmentation
+            - random_translate: min/max translation for data augmentation
+            - excluding_first_keypoints: exclude the first N keypoints from the annotations
+            - transforms: preprocess function to apply for the images
+            - keep_aspect_ratio: preserve original aspect ratio of image adding black bands
+            - is_confidence_available: if true, use the third value of the COCO dataset as indicator for confidence
+            - order_file: if fed, it loads the index of the annotations to traverse in that order. It can be used to generate a smaller dataset with the same annotations
+        """
 
         self.keep_aspect_ratio = keep_aspect_ratio
         self.transforms=transforms
-        self.is_bmp = is_bmp
         self.images_dir = images_dir
         self.image_shape = image_shape
         self.target_shape = target_shape
@@ -233,8 +264,17 @@ class CocoDataset(torch.utils.data.Dataset):
         self.random_angle = random_angle
         self.random_scale = random_scale
         self.random_translate = random_translate
-        self.image_extension = image_extension
-        self.custom_return = custom_return
+        
+        self.reorder = None
+        if order_file is not None:
+            self.reorder = []
+            with open(order_file, 'r') as f:
+                # Iterate over the lines of the file
+                for line in f:
+                    # Remove the newline character at the end of the line
+                    line = line.strip()
+
+                    self.reorder.append(int(line))
         
         tensor_cache_file = annotations_file + '.cache'
         
@@ -254,7 +294,7 @@ class CocoDataset(torch.utils.data.Dataset):
             data = json.load(f)
 
         cat = [c for c in data['categories'] if c['name'] == category_name][0]
-        cat = fix_category_excluding_face(cat)
+        cat = fix_category_excluding_face(cat, excluding_first_keypoints)
         cat_id = cat['id']
 
         img_map = {}
@@ -303,7 +343,7 @@ class CocoDataset(torch.utils.data.Dataset):
 
         print('Generating intermediate tensors...')
         self.counts = torch.zeros((N, C), dtype=torch.int32)
-        self.peaks = torch.zeros((N, C, M, 2), dtype=torch.float32)
+        self.peaks = torch.zeros((N, C, M, 3), dtype=torch.float32)
         self.connections = torch.zeros((N, K, 2, M), dtype=torch.int32)
         self.filenames = []
         self.samples = []
@@ -313,7 +353,7 @@ class CocoDataset(torch.utils.data.Dataset):
             self.filenames.append(filename)
             image_shape = (sample['img']['height'], sample['img']['width'])
             counts_i, peaks_i, connections_i = coco_annotations_to_tensors(
-                sample['anns'], image_shape, self.parts, self.topology)
+                sample['anns'], image_shape, self.parts, self.topology, excluding_first_keypoints, is_confidence_available)
             self.counts[i] = counts_i
             self.peaks[i] = peaks_i
             self.connections[i] = connections_i
@@ -332,18 +372,12 @@ class CocoDataset(torch.utils.data.Dataset):
             }, tensor_cache_file)
 
     def __len__(self):
-        return len(self.filenames)
+        return len(self.filenames) if self.reorder is None else len(self.reorder)
 
     def __getitem__(self, idx):
-        if self.is_bmp:
-            filename = os.path.splitext(self.filenames[idx])[0] + '.bmp'
-        else:
-            filename = os.path.splitext(self.filenames[idx])[0] + '.{}'.format(self.image_extension)
+        idx = idx if self.reorder is None else self.reorder[idx]
+        filename = self.filenames[idx]
         
-        if self.custom_return:
-            image = cv2.imread(os.path.join(self.images_dir, filename))
-            return image, filename
-
         # print(filename)
         image = PIL.Image.open(os.path.join(self.images_dir, filename))
         
@@ -437,7 +471,11 @@ class CocoHumanPoseEval(object):
             quad = get_quad(0.0, (0, 0), 1.0, aspect_ratio=ar)
             image = transform_image(image, self.image_shape, quad)
 
-            data = self.transform(image).cuda()[None, ...]
+            data = self.transform(image)
+            # these two lines avoid warning
+            f = torchvision.transforms.ToTensor()
+            data = f(data)
+            data = data.cuda()[None, ...]
 
             cmap, paf = model(data)
             cmap, paf = cmap.cpu(), paf.cpu()
