@@ -17,6 +17,7 @@ import pycocotools.cocoeval
 import torchvision
 
 from typing import Tuple
+import math
 
 import cv2
 
@@ -56,7 +57,7 @@ def coco_annotations_to_tensors(coco_annotations,
     IH = image_shape[0]
     IW = image_shape[1]
     counts = torch.zeros((C)).int()
-    peaks = torch.zeros((C, M, 3)).float()
+    peaks = torch.zeros((C, M, 3 if is_confidence_available else 2)).float()
     visibles = torch.zeros((len(annotations), C)).int()
     connections = -torch.ones((K, 2, M)).int()
 
@@ -84,7 +85,9 @@ def coco_annotations_to_tensors(coco_annotations,
             if visible:
                 peaks[c][counts[c]][0] = (float(y) + 0.5) / (IH + 1.0)
                 peaks[c][counts[c]][1] = (float(x) + 0.5) / (IW + 1.0)
-                peaks[c][counts[c]][2] = confidence
+                if is_confidence_available:
+                    # value probably to tune better, for now it seems reasonable (close to 2*pi, how strange...)
+                    peaks[c][counts[c]][2] = -math.log(confidence)/math.log(500)
                 counts[c] = counts[c] + 1
                 visibles[ann_idx][c] = 1
 
@@ -198,7 +201,20 @@ def transform_peaks(counts, peaks, quad):
     C = counts.shape[0]
     for c in range(C):
         count = int(counts[c])
-        newpeaks[c][0:count] = transform_points_xy(newpeaks[c][0:count][:, ::-1], quad)[:, ::-1]
+        sl = len(newpeaks.shape)
+        if sl == 2 or sl == 3:
+            # basically, invert x-y
+            if newpeaks.shape[sl-1] == 2:
+                newpeaks[c][0:count] = transform_points_xy(newpeaks[c][0:count][:, ::-1], quad)[:, ::-1]
+            elif newpeaks.shape[sl-1] == 3:
+                newp = newpeaks[c][0:count][:, 0:2]
+                newp = newp[:, ::-1]
+                newpeaks[c][0:count][:, :2] = transform_points_xy(newp, quad)[:, ::-1]
+            else:
+                raise Exception(f"Non valid dimension of peaks, level 1! shape = {newpeaks.shape}")
+        else:
+            raise Exception(f"Non valid dimension of peaks, level 0! shape = {newpeaks.shape}")
+
     return torch.from_numpy(newpeaks)
 
 def fix_category_excluding_face(cat, V_THR):
@@ -343,7 +359,7 @@ class CocoDataset(torch.utils.data.Dataset):
 
         print('Generating intermediate tensors...')
         self.counts = torch.zeros((N, C), dtype=torch.int32)
-        self.peaks = torch.zeros((N, C, M, 3), dtype=torch.float32)
+        self.peaks = torch.zeros((N, C, M, 3 if is_confidence_available else 2), dtype=torch.float32)
         self.connections = torch.zeros((N, K, 2, M), dtype=torch.int32)
         self.filenames = []
         self.samples = []
