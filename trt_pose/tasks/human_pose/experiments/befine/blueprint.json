@@ -1,0 +1,109 @@
+{
+    "train_dataset": {
+        "excluding_first_keypoints": 0,
+        "is_confidence_available": true,
+        "keep_aspect_ratio": false,
+        "images_dir": "/home/saldegheri/nas/MAEVE/BEFINE/ice_demo_7cam",
+        "annotations_file": "",
+        "category_name": "person",
+        "image_shape": [
+            256,
+            256
+        ],
+        "target_shape": [
+            64,
+            64
+        ],
+        "stdev": 0.025,
+        "random_angle": [
+            -0.2,
+            0.2
+        ],
+        "random_scale": [
+            0.5,
+            2.0
+        ],
+        "random_translate": [
+            -0.2,
+            0.2
+        ]
+    },
+    "stdev_schedule": {
+        "0": 0.025
+    },
+    "color_jitter": {
+        "brightness": 0.05,
+        "contrast": 0.05,
+        "saturation": 0.05,
+        "hue": 0.01
+    },
+    "test_dataset": {
+        "excluding_first_keypoints": 0,
+        "is_confidence_available": true,
+        "keep_aspect_ratio": false,
+        "images_dir": "/home/saldegheri/nas/MAEVE/BEFINE/ice_demo_7cam",
+        "annotations_file": "",
+        "category_name": "person",
+        "image_shape": [
+            256,
+            256
+        ],
+        "target_shape": [
+            64,
+            64
+        ],
+        "stdev": 0.025,
+        "random_angle": [
+            -0.0,
+            0.0
+        ],
+        "random_scale": [
+            1.0,
+            1.0
+        ],
+        "random_translate": [
+            -0.0,
+            0.0
+        ]
+    },
+    "train_loader": {
+        "batch_size": 32,
+        "shuffle": true,
+        "num_workers": 1,
+        "pin_memory": true
+    },
+    "test_loader": {
+        "batch_size": 32,
+        "shuffle": true,
+        "num_workers": 1,
+        "pin_memory": true
+    },
+    "model": {
+        "name": "densenet121_baseline_att",
+        "kwargs": {
+            "cmap_channels": 12,
+            "paf_channels": 24,
+            "upsample_channels": 256,
+            "num_upsample": 3,
+            "weights": null
+        },
+        "initial_state_dict": "/home/saldegheri/git/edge_knowledge_distillation/densenet121_baseline_att_256x256_B_epoch_160_parco.pth"
+    },
+    "optimizer": {
+        "name": "Adam",
+        "kwargs": {
+            "lr": 0.001
+        }
+    },
+    "epochs": 10,
+    "batch_size": 64,
+    "lr_schedule": {
+        "0": 0.001,
+        "75": 0.0001,
+        "150": 1e-05
+    },
+    "checkpoints": {
+        "interval": 100
+    },
+    "mask_unlabeled": true
+}

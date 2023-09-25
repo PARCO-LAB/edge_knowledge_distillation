@@ -13,8 +13,8 @@ import time
 import json
 import pprint
 import torch.nn.functional as F
-from .coco import CocoDataset, CocoHumanPoseEval
-from .models import MODELS
+from coco import CocoDataset, CocoHumanPoseEval
+from models import MODELS
 import numpy as np
 import random
 
