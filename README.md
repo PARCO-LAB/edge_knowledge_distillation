@@ -48,6 +48,10 @@ python3 gen_tasks.py -rf /home/shared/befine/edge_knowledge_distillation -df /ho
 
 # Jetson
 python3 h36m_to_coco.py -hf /home/nvidia/dataset/h36m -cf /home/nvidia/nas/dataset/COCO/annotations/person_keypoints_val2017.json
+python3 gen_tasks.py -rf /home/nvidia/Repositories/edge_knowledge_distillation -df /home/nvidia/KnowledgeDistillation
+bash scripts/run_parcopose.bash
+bash scripts/run_openpose.bash
+python3 trt_pose/train.py tasks/human_pose/experiments/profile_h36m_vicon_nohead_densenet121_baseline_att_256x256_B.json
 ```
 
 Train:

@@ -120,31 +120,10 @@ def calculate_svd(skeleton_series):
     return (u, s, vt)
 
 
-def calculate_svd_reconstruction(skeleton_series, svd_info, num_components):
+def calculate_svd_reconstruction(skeleton_series, svd_info):
     u, s, vt = svd_info
-
-    # Convert the skeleton series into a numpy array
-    skeleton_array = np.array(skeleton_series)
-    
-    # Replace NaN values with zeros
-    skeleton_array = np.nan_to_num(skeleton_array)
-    
-    # Truncate the singular values and corresponding matrices
-    s_truncated = np.diag(s[:num_components])
-    u_truncated = u[:, :num_components]
-    vt_truncated = vt[:num_components, :]
-    
-    # Reconstruct the smoothed skeleton series
-    smoothed_skeleton_array = u_truncated @ s_truncated @ vt_truncated
-    
-    # Transpose the array to get back the original shape
-    smoothed_skeleton_series = smoothed_skeleton_array.T
-
-    reconstruction_error = np.linalg.norm(skeleton_array - smoothed_skeleton_series)
-    total_error = np.linalg.norm(skeleton_array)
-    percentage_reconstruction = (1 - reconstruction_error / total_error) * 100
-    
-    return percentage_reconstruction
+    perc = np.cumsum(s) / np.sum(s)
+    return perc * 100
 
 
 

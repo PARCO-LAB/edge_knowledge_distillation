@@ -13,9 +13,10 @@ random.seed(SEED)
 
 from error import calculate_svd, calculate_svd_reconstruction, h36m_kp_names
 
-TEACHERS = ["vicon", "openpose1", "CPN"]
+# TEACHERS = ["vicon", "openpose1", "CPN"]
+TEACHERS = ["openpose1"]
 # SAMPLINGS = ["fixedmax_confidence", "fixedmean_confidence", "fixedconfidence", "fixedmpjpe", "mean_confidence", "max_confidence", "confidence", "mpjpe", "uniform", "fixedrandom", "random", "action", "parco"]
-SAMPLINGS = ["fixedmax_confidence", "max_confidence"]
+SAMPLINGS = ["parco"]
 PERCENTAGES = [0.01, 0.05, 0.1, 0.2, 0.4]
 WINDOW = int(50 * 30)
 
@@ -221,6 +222,7 @@ def action_sampling(files, num_samples):
 
 def parco_keyframe_sampling(files, num_samples, num_eigen_vector=15, batch_size=30):
     ret = {}
+    time_report = []
     if batch_size is None: 
         batch_size = num_eigen_vector
     first_good_eigen_vector_for_data_index = []
@@ -234,19 +236,17 @@ def parco_keyframe_sampling(files, num_samples, num_eigen_vector=15, batch_size=
                 continue
             if IMAGE_ID_LIMIT is not None and int(data_window.iloc[0]["frame"]) >= IMAGE_ID_LIMIT: 
                 break
+            s = time.time()
             svd_info = calculate_svd(data_window.values)
-            first_good_eigen_vector = None
-            for e_i in range(1, num_eigen_vector + 1):
-                perc = calculate_svd_reconstruction(data_window.values, svd_info, e_i)
-                if first_good_eigen_vector is None and perc > THRESHOLD_PREC_SVD:
-                    first_good_eigen_vector = e_i
-            if first_good_eigen_vector is None:
-                first_good_eigen_vector = num_eigen_vector
+            perc = calculate_svd_reconstruction(data_window.values, svd_info)
+            first_good_eigen_vector = np.argmax(perc >= THRESHOLD_PREC_SVD) + 1
+            e = time.time()
             first_good_eigen_vector_for_data_index.append({
                 "fp": fp,
                 "data_idx": int(data_window.iloc[0]["frame"]),
                 "eigen_vector_idx": first_good_eigen_vector
             })
+            time_report.append((e-s))
     first_good_eigen_vector_for_data_index = sorted(
         first_good_eigen_vector_for_data_index, key=lambda x: x["eigen_vector_idx"], reverse=True)
     for fp in files: 
@@ -255,6 +255,8 @@ def parco_keyframe_sampling(files, num_samples, num_eigen_vector=15, batch_size=
     for fp in files: 
         ret[fp].sort()
         print("{}: key-frame amount {}{:20}".format(fp, len(ret[fp]), " "))
+
+    print("Time report: {} +- {} ms, {} fps".format(np.mean(time_report), np.std(time_report), 1.0 / np.mean(time_report)))
     return ret
 
 
@@ -620,7 +622,7 @@ def fixedmax_confidence_keyframe_sampling(files, w_perc):
     return ret
 
 
-def get_keyframes(subjects, h36m_folder, sampling, perc, starting_model="trtpose_PARCO", teacher="vicon"):
+def get_keyframes(subjects, h36m_folder, sampling, perc, starting_model="parco", teacher="vicon"):
     if sampling is None or perc is None: 
         return None
     print("Key-frame extraction - {}".format(sampling))
@@ -834,26 +836,26 @@ def main(h36m_folder, coco_annotation):
     # generate_on_subjects(["S9", "S11"], h36m_folder, coco_annotation, "person_keypoints_valh36m_vicon.json", teacher="vicon")
     # generate_on_subjects(["S9", "S11"], h36m_folder, coco_annotation, "person_keypoints_valh36m_openpose1.json", teacher="openpose1")
     # generate_on_subjects(["S9", "S11"], h36m_folder, coco_annotation, "person_keypoints_valh36m_CPN.json", teacher="CPN")
-    for teacher in TEACHERS: 
-        for sampling in SAMPLINGS: 
-            for perc in PERCENTAGES: 
-                generate_on_subjects(["S1", "S5", "S6", "S7", "S8"], h36m_folder, coco_annotation, 
-                                     "person_keypoints_trainh36m_{}sampling{}_{}.json".format(sampling, int(perc * 100), teacher), 
-                                     teacher=teacher, sampling=sampling, perc=perc)
-                generate_on_subjects(["S9", "S11"], h36m_folder, coco_annotation, 
-                                    "person_keypoints_valh36m_{}sampling{}_{}.json".format(sampling, int(perc * 100), teacher), 
-                                    teacher=teacher, sampling=sampling, perc=perc)
+    # for teacher in TEACHERS: 
+    #     for sampling in SAMPLINGS: 
+    #         for perc in PERCENTAGES: 
+    #             generate_on_subjects(["S1", "S5", "S6", "S7", "S8"], h36m_folder, coco_annotation, 
+    #                                  "person_keypoints_trainh36m_{}sampling{}_{}.json".format(sampling, int(perc * 100), teacher), 
+    #                                  teacher=teacher, sampling=sampling, perc=perc)
+    #             generate_on_subjects(["S9", "S11"], h36m_folder, coco_annotation, 
+    #                                 "person_keypoints_valh36m_{}sampling{}_{}.json".format(sampling, int(perc * 100), teacher), 
+    #                                 teacher=teacher, sampling=sampling, perc=perc)
                 
     # generate_on_subjects(["S1"], h36m_folder, coco_annotation, "person_keypoints_s1_vicon.json", teacher="vicon", enable_continual=True)
     # generate_on_subjects(["S1"], h36m_folder, coco_annotation, "person_keypoints_s1_openpose1.json", teacher="openpose1", enable_continual=True)
     # generate_on_subjects(["S1"], h36m_folder, coco_annotation, "person_keypoints_s1_CPN.json", teacher="CPN", enable_continual=True)
 
-    # for teacher in TEACHERS: 
-    #     for sampling in SAMPLINGS: 
-    #         for perc in PERCENTAGES: 
-    #             generate_on_subjects(["S1"], h36m_folder, coco_annotation, 
-    #                                  "person_keypoints_s1_{}sampling{}_{}.json".format(sampling, int(perc * 100), teacher), 
-    #                                  teacher=teacher, sampling=sampling, perc=perc, enable_continual=True)
+    for teacher in TEACHERS: 
+        for sampling in SAMPLINGS: 
+            for perc in PERCENTAGES: 
+                generate_on_subjects(["S1"], h36m_folder, coco_annotation, 
+                                     "person_keypoints_s1_{}sampling{}_{}.json".format(sampling, int(perc * 100), teacher), 
+                                     teacher=teacher, sampling=sampling, perc=perc, enable_continual=True)
 
 
 if __name__ == "__main__":
